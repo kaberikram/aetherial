@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft, Trash2, AlertTriangle, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -14,6 +14,19 @@ export default function SettingsPage() {
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+
+  // Apply settings-page class to document body
+  useEffect(() => {
+    // Add the class to hide scrollbars
+    document.body.classList.add('settings-page');
+    document.documentElement.classList.add('settings-page');
+    
+    // Clean up function to remove the class when component unmounts
+    return () => {
+      document.body.classList.remove('settings-page');
+      document.documentElement.classList.remove('settings-page');
+    };
+  }, []);
 
   const clearAllDreams = () => {
     setIsClearing(true)
@@ -38,7 +51,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 md:pb-0">
+    <div className="min-h-screen pb-24 md:pb-0 settings-page">
       {/* Header for mobile */}
       <header className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm border-b border-zinc-800 px-4 py-3 md:hidden">
         <div className="flex items-center">

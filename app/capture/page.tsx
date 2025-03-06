@@ -54,6 +54,19 @@ export default function DreamCapture() {
     setDream((prev) => ({ ...prev, id: `dream_${Date.now()}` }))
   }, [])
 
+  // Apply capture-page class to document body and html
+  useEffect(() => {
+    // Add the class to hide scrollbars
+    document.body.classList.add('capture-page');
+    document.documentElement.classList.add('capture-page');
+    
+    // Clean up function to remove the class when component unmounts
+    return () => {
+      document.body.classList.remove('capture-page');
+      document.documentElement.classList.remove('capture-page');
+    };
+  }, []);
+
   const handleSave = () => {
     const dreamToSave = {
       id: dream.id,
@@ -91,7 +104,7 @@ export default function DreamCapture() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
+    <div className="min-h-screen bg-black text-white pb-24 capture-page">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm border-b border-zinc-800 px-4 py-3">
         <div className="flex items-center justify-between">

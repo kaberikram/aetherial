@@ -344,12 +344,91 @@ body {
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* Hide scrollbars for the settings page */
+.settings-page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.settings-page::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Hide scrollbars on all scrollable elements within the settings page */
+.settings-page * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.settings-page *::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Hide scrollbars for the capture page */
+.capture-page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.capture-page::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Hide scrollbars on all scrollable elements within the capture page */
+.capture-page * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.capture-page *::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Specifically target textareas in the capture page */
+.capture-page textarea {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow-y: auto;
+}
+
+.capture-page textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}
+
 /* Apply to html and body when on explore page */
 html.explore-page,
 body.explore-page {
   overflow: hidden;
   height: 100%;
   width: 100%;
+}
+
+/* Apply to html and body when on settings page */
+html.settings-page,
+body.settings-page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow-y: auto;
+}
+
+html.settings-page::-webkit-scrollbar,
+body.settings-page::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Apply to html and body when on capture page */
+html.capture-page,
+body.capture-page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow-y: auto;
+}
+
+html.capture-page::-webkit-scrollbar,
+body.capture-page::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Custom styles can be added here */
