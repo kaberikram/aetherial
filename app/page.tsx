@@ -33,6 +33,19 @@ export default function Home() {
     setDreams(savedDreams.reverse())
   }, [])
 
+  // Apply home-page class to document body and html
+  useEffect(() => {
+    // Add the class to hide scrollbars
+    document.body.classList.add('home-page');
+    document.documentElement.classList.add('home-page');
+    
+    // Clean up function to remove the class when component unmounts
+    return () => {
+      document.body.classList.remove('home-page');
+      document.documentElement.classList.remove('home-page');
+    };
+  }, []);
+
   // Function to get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours()
@@ -42,7 +55,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen pb-16 md:pb-0">
+    <div className="min-h-screen pb-16 md:pb-0 home-page">
       {/* Only show header on mobile */}
       <div className="md:hidden">
         <Header />
