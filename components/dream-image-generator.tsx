@@ -6,13 +6,52 @@ import { Button } from "@/components/ui/button"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Loader2, RefreshCw, Info, ZoomIn, ZoomOut, Download, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+import { createClient } from "@/lib/supabase/client"
 
 interface DreamImageGeneratorProps {
   summary: string
 }
 
-// Daily limit constant
-const DAILY_LIMIT = 2
+// Simple rate limiting constants
+const MAX_GENERATIONS_PER_DAY = 5
+const RATE_LIMIT_STORAGE_KEY = "image_generation_usage"
+
+// Helper function to check and update rate limits
+function checkRateLimit(): { allowed: boolean, remaining: number } {
+  if (typeof window === 'undefined') {
+    return { allowed: false, remaining: 0 }
+  }
+  
+  const today = new Date().toDateString()
+  let usage = JSON.parse(localStorage.getItem(RATE_LIMIT_STORAGE_KEY) || '{"date":"","count":0}')
+  
+  // Reset if it's a new day
+  if (usage.date !== today) {
+    usage = { date: today, count: 0 }
+  }
+  
+  const remaining = MAX_GENERATIONS_PER_DAY - usage.count
+  return { 
+    allowed: remaining > 0,
+    remaining
+  }
+}
+
+// Helper function to increment usage
+function incrementUsage() {
+  if (typeof window === 'undefined') return
+  
+  const today = new Date().toDateString()
+  let usage = JSON.parse(localStorage.getItem(RATE_LIMIT_STORAGE_KEY) || '{"date":"","count":0}')
+  
+  // Reset if it's a new day
+  if (usage.date !== today) {
+    usage = { date: today, count: 0 }
+  }
+  
+  usage.count += 1
+  localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(usage))
+}
 
 export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -21,14 +60,48 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   const [showDebug, setShowDebug] = useState(false)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [isZoomed, setIsZoomed] = useState(false)
-  const [dailyGenerationsLeft, setDailyGenerationsLeft] = useState(DAILY_LIMIT)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [remainingGenerations, setRemainingGenerations] = useState<number>(MAX_GENERATIONS_PER_DAY)
+  const [showDonateInfo, setShowDonateInfo] = useState(false)
 
-  // Default image size is 1024x1024
-  const imageWidth = 1024
-  const imageHeight = 1024
+  // Check authentication and rate limits
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        setIsAuthenticated(!!user)
+      } catch (error) {
+        console.error("Error checking auth status:", error)
+      }
+    }
+    
+    checkAuth()
+    
+    // Check rate limits
+    const { remaining } = checkRateLimit()
+    setRemainingGenerations(remaining)
+  }, [])
 
   const generateImage = async () => {
-    // No need to check limit here as the server will handle it
+    if (!isAuthenticated) {
+      setError("Please sign in to generate dream images")
+      toast.error("Authentication required", {
+        description: "Please sign in to generate dream images"
+      })
+      return
+    }
+    
+    // Check rate limit
+    const { allowed, remaining } = checkRateLimit()
+    if (!allowed) {
+      setError(`You've reached the daily limit of ${MAX_GENERATIONS_PER_DAY} image generations. Please try again tomorrow.`)
+      toast.error("Generation limit reached", {
+        description: `You've reached the daily limit of ${MAX_GENERATIONS_PER_DAY} image generations. Please try again tomorrow.`
+      })
+      return
+    }
+    
     setIsGenerating(true)
     setError(null)
     setDebugInfo(null)
@@ -44,32 +117,52 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
         setGeneratedImage(response.data.image)
         setDebugInfo(response.data.debug || null)
         
-        // Update remaining generations from server response
-        if (response.data.remainingGenerations !== undefined) {
-          setDailyGenerationsLeft(response.data.remainingGenerations)
-        }
-      } else {
-        setError("Failed to generate image")
-        setDebugInfo(response.data.debug || null)
+        // Increment usage count
+        incrementUsage()
+        setRemainingGenerations(remaining - 1)
+        
+        toast.success("Dream image generated successfully")
       }
-    } catch (err: any) {
-      console.error("Image generation error:", err)
+    } catch (error: any) {
+      console.error("Error generating image:", error)
       
-      // Handle rate limit error specifically
-      if (err.response?.status === 429) {
-        setError("Daily generation limit reached. Try again tomorrow.")
-        setDailyGenerationsLeft(0)
+      // Log detailed error information
+      console.log("Error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        message: error.message
+      })
+      
+      const errorMessage = error.response?.data?.error || "Failed to generate image. Please try again."
+      setError(errorMessage)
+      setDebugInfo(error.response?.data || { error: error.message })
+      
+      // Check for specific error types
+      if (error.response?.status === 401) {
+        // Authentication error
+        toast.error("Authentication required", {
+          description: "Please sign in to generate dream images."
+        })
+      } else if (error.response?.data?.debug?.missingApiKey) {
+        // Missing API key error
+        toast.error("Configuration error", {
+          description: "The image generation service is not properly configured. Please contact the administrator."
+        })
       } else {
-        setError(`Failed to generate image: ${err.message || "Unknown error"}`)
-      }
-      
-      if (err.response?.data) {
-        setDebugInfo(err.response.data)
+        toast.error("Image generation failed", {
+          description: errorMessage
+        })
       }
     } finally {
       setIsGenerating(false)
     }
   }
+
+  // Default image size is 1024x1024
+  const imageWidth = 1024
+  const imageHeight = 1024
 
   const toggleDebugInfo = () => {
     setShowDebug(!showDebug)
@@ -82,194 +175,236 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   const downloadImage = () => {
     if (!generatedImage) return
     
-    // Create a temporary link element
     const link = document.createElement('a')
     link.href = generatedImage
-    link.download = `dream-visualization-${new Date().getTime()}.png`
+    link.download = `dream-image-${new Date().getTime()}.webp`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
-    toast.success("Image downloaded successfully")
+  }
+
+  const handleDonateClick = () => {
+    // Open donation link in a new tab
+    window.open('https://buy.stripe.com/7sI01AesQg3M4Gk001', '_blank');
   }
 
   return (
-    <div>
-      <div className="w-full bg-zinc-900/50 rounded-lg border border-zinc-800/50 overflow-hidden">
-        {generatedImage ? (
-          <div className="relative">
-            <div className={`flex justify-center ${isZoomed ? 'overflow-auto max-h-[80vh]' : ''}`}>
-              <img 
-                src={generatedImage} 
-                alt="Generated dream visualization" 
-                className={`${isZoomed ? 'w-auto h-auto max-w-none transform scale-150' : 'w-full h-auto max-w-full mx-auto'}`}
-              />
+    <div className="space-y-4">
+      {!generatedImage && !isGenerating && (
+        <div className="bg-zinc-800/30 rounded-lg border border-zinc-700/30 p-6 text-center space-y-4">
+          <h3 className="text-lg font-medium">Generate Dream Visualization</h3>
+          <p className="text-zinc-400 text-sm">
+            Create an AI-generated visualization based on your dream description.
+          </p>
+          
+          {!isAuthenticated ? (
+            <div className="text-sm text-amber-400 mb-4">
+              Please sign in to generate dream images
             </div>
-            <div className="absolute bottom-4 right-4 flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={downloadImage}
-                className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Save
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={toggleZoom}
-                className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
-              >
-                {isZoomed ? (
-                  <ZoomOut className="h-4 w-4" />
-                ) : (
-                  <ZoomIn className="h-4 w-4" />
-                )}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={generateImage}
-                disabled={isGenerating || dailyGenerationsLeft <= 0}
-                className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Regenerate {dailyGenerationsLeft < DAILY_LIMIT && `(${dailyGenerationsLeft} left)`}
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="p-8 flex flex-col items-center justify-center min-h-[300px] md:min-h-[400px] relative overflow-hidden">
-            {/* Background decorative elements with animations */}
-            <div className="absolute inset-0 overflow-hidden opacity-20">
-              <div className="absolute top-0 left-1/4 w-32 h-32 rounded-full bg-blue-500/20 blur-xl animate-pulse-slow"></div>
-              <div className="absolute bottom-1/4 right-1/4 w-40 h-40 rounded-full bg-purple-500/20 blur-xl animate-pulse-slower"></div>
-              <div className="absolute top-1/3 right-1/3 w-24 h-24 rounded-full bg-pink-500/20 blur-xl animate-float"></div>
-              
-              {/* Animated ripple effect */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-40 h-40 rounded-full border border-white/5 animate-ripple"></div>
-                <div className="w-40 h-40 rounded-full border border-white/5 animate-ripple-delay-1"></div>
-                <div className="w-40 h-40 rounded-full border border-white/5 animate-ripple-delay-2"></div>
+          ) : (
+            <div className="text-sm text-zinc-400 mb-4">
+              <div className="flex items-center justify-center gap-1">
+                <span>Generations remaining today: </span>
+                <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {remainingGenerations}
+                </span>
+                <span>/{MAX_GENERATIONS_PER_DAY}</span>
               </div>
               
-              {/* Subtle grid pattern */}
-              <div className="absolute inset-0" style={{ 
-                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)', 
-                backgroundSize: '30px 30px' 
-              }}></div>
+              {remainingGenerations <= 2 && (
+                <div className="mt-2 text-xs text-amber-300">
+                  <button 
+                    className="underline hover:text-amber-200 transition-colors"
+                    onClick={() => setShowDonateInfo(!showDonateInfo)}
+                  >
+                    Support this feature
+                  </button>
+                </div>
+              )}
             </div>
-            
-            {error ? (
-              <div className="text-center relative z-10">
-                <p className="text-red-400 mb-4">{error}</p>
-                <GradientButton 
-                  onClick={generateImage}
-                  disabled={isGenerating || dailyGenerationsLeft <= 0}
-                  className="px-6 py-3 text-sm"
-                >
-                  Try Again
-                </GradientButton>
+          )}
+          
+          {showDonateInfo && (
+            <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20 mb-2">
+              <p className="text-zinc-300 mb-2">
+                Dream visualizations are powered by AI that costs real money to run.
+                Your donation helps keep this feature available for everyone!
+              </p>
+              <Button 
+                onClick={handleDonateClick}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
+              >
+                💳 Support this feature
+              </Button>
+            </div>
+          )}
+          
+          <GradientButton
+            onClick={generateImage}
+            disabled={isGenerating || !isAuthenticated || remainingGenerations <= 0}
+            className="w-full"
+          >
+            {isGenerating ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
               </div>
             ) : (
-              <div className="text-center relative z-10 flex flex-col items-center justify-center">
-                {/* Simple CSS Ripple Animation - positioned higher */}
-                <div className="relative h-24 w-full flex justify-center mb-2">
-                  <div className="simple-ripple"></div>
-                  <div className="simple-ripple" style={{ animationDelay: '1s' }}></div>
-                  <div className="simple-ripple" style={{ animationDelay: '2s' }}></div>
-                  <style jsx>{`
-                    .simple-ripple {
-                      position: absolute;
-                      top: 50%;
-                      left: 50%;
-                      transform: translate(-50%, -50%);
-                      width: 50px;
-                      height: 50px;
-                      border: 1px solid rgba(255, 255, 255, 0.3);
-                      border-radius: 50%;
-                      animation: ripple 3s linear infinite;
-                    }
-                    
-                    @keyframes ripple {
-                      0% {
-                        width: 0px;
-                        height: 0px;
-                        opacity: 0.8;
-                      }
-                      100% {
-                        width: 100px;
-                        height: 100px;
-                        opacity: 0;
-                      }
-                    }
-                  `}</style>
-                </div>
-                
-                <div className="flex flex-col items-center mt-0">
-                  <p className="text-zinc-400 mb-4 text-sm">Transform your written dream into imagery</p>
-                  
-                  {dailyGenerationsLeft <= 0 ? (
-                    <div className="text-amber-400 text-sm flex items-center mb-3">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      Daily limit reached. Try again tomorrow.
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500 mb-3">
-                      {DAILY_LIMIT - dailyGenerationsLeft > 0 ? 
-                        `${dailyGenerationsLeft} of ${DAILY_LIMIT} generations left today` : 
-                        `${DAILY_LIMIT} generations available today`}
-                    </p>
-                  )}
-                  
-                  <GradientButton 
-                    onClick={generateImage}
-                    disabled={isGenerating || dailyGenerationsLeft <= 0}
-                    className="px-6 py-3"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      "Visualize Dream"
-                    )}
-                  </GradientButton>
-                </div>
-              </div>
+              "Generate Visualization"
             )}
-          </div>
-        )}
-      </div>
-      
-      {(error || debugInfo) && (
-        <div className="mt-2 flex justify-end">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={toggleDebugInfo}
-            className="text-zinc-500"
-          >
-            <Info className="h-4 w-4 mr-1" />
-            {showDebug ? "Hide" : "Show"} Debug Info
-          </Button>
+          </GradientButton>
+          
+          {remainingGenerations === 0 && (
+            <div className="mt-2 bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20">
+              <p className="text-zinc-300 mb-2">
+                You've reached your daily limit of {MAX_GENERATIONS_PER_DAY} image generations.
+              </p>
+              <p className="text-zinc-400 mb-3 text-xs">
+                This limit helps us manage costs. Your support helps keep this feature available!
+              </p>
+              <Button 
+                onClick={handleDonateClick}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
+              >
+                💳 Support this feature
+              </Button>
+            </div>
+          )}
         </div>
       )}
-      
-      {showDebug && debugInfo && (
-        <div className="mt-2 p-4 bg-zinc-900 rounded-lg border border-zinc-800 text-xs font-mono overflow-x-auto">
-          <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+
+      {/* Only show this section when there's an image or we're generating one */}
+      {(generatedImage || isGenerating) && (
+        <div className="w-full bg-zinc-900/50 rounded-lg border border-zinc-800/50 overflow-hidden">
+          {generatedImage ? (
+            <div className="relative">
+              {/* Image container with zoom functionality */}
+              <div 
+                className={`relative overflow-hidden transition-all duration-300 ${
+                  isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
+                }`}
+                onClick={toggleZoom}
+              >
+                <img 
+                  src={generatedImage} 
+                  alt="AI generated visualization of the dream" 
+                  className={`w-full h-auto transition-all duration-300 ${
+                    isZoomed ? 'scale-150' : 'scale-100'
+                  }`}
+                />
+              </div>
+              
+              {/* Controls overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={toggleZoom}
+                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
+                    >
+                      {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
+                    </Button>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={downloadImage}
+                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={toggleDebugInfo}
+                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={generateImage}
+                      disabled={isGenerating || !isAuthenticated || remainingGenerations <= 0}
+                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
+                    >
+                      {isGenerating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Regenerate
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Debug info panel */}
+              {showDebug && debugInfo && (
+                <div className="mt-4 p-4 bg-black/50 border border-zinc-800 rounded-md text-xs font-mono overflow-x-auto">
+                  <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          ) : isGenerating ? (
+            <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
+              <div className="flex flex-col items-center">
+                <div className="relative w-16 h-16 mb-4">
+                  <div className="absolute inset-0 rounded-full border-t-2 border-blue-500 animate-spin"></div>
+                  <div className="absolute inset-2 rounded-full border-t-2 border-purple-500 animate-spin-slow"></div>
+                </div>
+                <h3 className="text-lg font-medium mb-2">Generating Dream Image</h3>
+                <p className="text-zinc-400 text-sm mb-1">This may take a moment...</p>
+                <p className="text-zinc-500 text-xs">Creating a unique visualization based on your dream</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/10 text-red-500 mb-4">
+                  <AlertCircle className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-medium mb-2 text-red-400">Generation Failed</h3>
+                <p className="text-zinc-400 mb-4">{error}</p>
+                
+                {isAuthenticated && remainingGenerations > 0 && (
+                  <Button 
+                    variant="outline" 
+                    onClick={generateImage}
+                    disabled={isGenerating}
+                  >
+                    Try Again
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* Add donate button to error state when API credits are depleted */}
+      {error && error.includes("credit") && (
+        <div className="mt-4 bg-zinc-800/50 rounded-lg p-4 text-sm border border-amber-500/20">
+          <p className="text-zinc-300 mb-2">
+            It looks like our image generation service has reached its capacity.
+          </p>
+          <p className="text-zinc-400 mb-3 text-xs">
+            Your donation will help us increase capacity and keep this feature available!
+          </p>
+          <Button 
+            onClick={handleDonateClick}
+            className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
+          >
+            💳 Support this feature
+          </Button>
         </div>
       )}
     </div>

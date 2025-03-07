@@ -466,3 +466,66 @@ body.home-page::-webkit-scrollbar {
 
 /* Custom styles can be added here */
 
+/* Hide scrollbars for the landing page */
+.landing-page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.landing-page::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Hide scrollbars on all scrollable elements within the landing page */
+.landing-page * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.landing-page *::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Apply to html and body when on landing page */
+html.landing-page,
+body.landing-page {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  overflow-y: auto;
+}
+
+html.landing-page::-webkit-scrollbar,
+body.landing-page::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Landing page specific styles */
+.landing-page header {
+  position: relative;
+  isolation: isolate;
+}
+
+.landing-page header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 70%
+  );
+  z-index: -1;
+}
+
+.landing-page header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 0, 0, 0.5)
+  );
+  z-index: -1;
+}
+

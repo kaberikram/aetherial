@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, Suspense, useMemo } from "react"
 import React from 'react'
 import { Canvas, useFrame, useThree, extend } from "@react-three/fiber"
 import { Text, Html, Plane, OrbitControls } from "@react-three/drei"
-import { EffectComposer, Bloom, Vignette, DepthOfField } from "@react-three/postprocessing"
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing"
 import * as THREE from "three"
 import { Loader2, ChevronUp, ChevronDown } from "lucide-react"
 import { createRoot } from 'react-dom/client'
@@ -446,6 +446,7 @@ const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls,
             <Grid />
             <Explorer onPositionChange={onPositionChange} touchControls={touchControls} />
             <DreamPoints dreams={dreams} boatPosition={explorerPosition} />
+            <AdvertisementSpheres />
             
             {/* Only render post-processing effects on desktop */}
             {!isMobile && (
@@ -454,7 +455,6 @@ const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls,
                   <EffectComposer>
                     <Bloom luminanceThreshold={0.1} luminanceSmoothing={0.9} intensity={1} />
                     <Vignette eskil={false} offset={0.1} darkness={0.7} />
-                    <DepthOfField focusDistance={0} focalLength={0.02} bokehScale={2} height={480} />
                   </EffectComposer>
                 </Suspense>
               </ErrorBoundary>
@@ -1049,6 +1049,216 @@ function Environment() {
   )
 }
 
+// Advertisement spheres component
+function AdvertisementSpheres() {
+  // Define ad sphere data with IDs, positions, and status
+  const adSpheres = useMemo(() => {
+    const spherePositions: Array<{
+      id: string;
+      position: { x: number; y: number; z: number };
+      status: 'available' | 'pending' | 'purchased';
+    }> = [];
+    
+    // 1. Outer circle (6 spheres) - spread wider
+    const outerRadius = 35
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2
+      spherePositions.push({
+        id: `Circle-${i+1}`,
+        position: {
+          x: Math.cos(angle) * outerRadius,
+          y: 1 + (i % 3) * 0.3, // Vary height slightly
+          z: Math.sin(angle) * outerRadius
+        },
+        status: 'available' as const
+      })
+    }
+    
+    // 2. Four spheres at wider corners
+    const cornerPositions = [
+      { id: 'Corner-NE', position: { x: 38, y: 1, z: 38 }, status: 'available' as const },
+      { id: 'Corner-NW', position: { x: -38, y: 1, z: 38 }, status: 'available' as const },
+      { id: 'Corner-SE', position: { x: 38, y: 1, z: -38 }, status: 'available' as const },
+      { id: 'Corner-SW', position: { x: -38, y: 1, z: -38 }, status: 'available' as const }
+    ]
+    
+    spherePositions.push(...cornerPositions)
+    
+    return spherePositions
+  }, [])
+  
+  return (
+    <group>
+      {adSpheres.map((sphere, index) => (
+        <FloatingAdSphere 
+          key={sphere.id} 
+          position={sphere.position} 
+          index={index}
+          id={sphere.id}
+          status={sphere.status}
+        />
+      ))}
+    </group>
+  )
+}
+
+// Individual floating advertisement sphere with animation
+function FloatingAdSphere({ position, index, id, status }: { 
+  position: { x: number, y: number, z: number }, 
+  index: number,
+  id: string,
+  status: 'available' | 'pending' | 'purchased'
+}) {
+  const sphereRef = useRef<THREE.Mesh>(null)
+  const textGroupRef = useRef<THREE.Group>(null)
+  const [isPlayerNear, setIsPlayerNear] = useState(false)
+  
+  // Use different phase for each sphere to create varied movement
+  const phaseOffset = index * 0.5
+  
+  // Set color based on status
+  const getSphereColor = () => {
+    switch(status) {
+      case 'purchased': return "lightblue"
+      case 'pending': return "lightyellow"
+      default: return "white"
+    }
+  }
+  
+  // Check if player is near this advertisement sphere
+  useFrame(({ clock }) => {
+    if (!sphereRef.current || !textGroupRef.current) return
+    
+    const time = clock.getElapsedTime()
+    
+    // Get the current player position from the Explorer component
+    // This is passed to the DreamScene component as explorerPosition
+    // We need to access it from the global state
+    const playerPosition = window.explorerPosition || { x: 0, z: 0 }
+    
+    // Calculate distance to player (ignoring Y axis)
+    const distanceToPlayer = Math.sqrt(
+      Math.pow(playerPosition.x - position.x, 2) + 
+      Math.pow(playerPosition.z - position.z, 2)
+    )
+    
+    // Check if player is near (increased to 5 units for better detection)
+    const playerIsNear = distanceToPlayer < 5
+    if (playerIsNear !== isPlayerNear) {
+      setIsPlayerNear(playerIsNear)
+    }
+    
+    // Gentle floating motion - different for each sphere but lower height
+    const floatY = Math.sin(time * 0.5 + phaseOffset) * 0.3
+    sphereRef.current.position.y = floatY
+    
+    // Position text slightly above sphere
+    textGroupRef.current.position.y = 1.5 + floatY
+    
+    // Continuous rotation for the text around the sphere
+    textGroupRef.current.rotation.y = time * 0.5 + phaseOffset
+    
+    // Pulsating glow effect - enhanced when player is near
+    if (sphereRef.current.material instanceof THREE.MeshStandardMaterial) {
+      const baseIntensity = isPlayerNear ? 1.0 : 0.5
+      const pulseIntensity = baseIntensity + Math.sin(time * 0.8 + phaseOffset) * (isPlayerNear ? 0.4 : 0.2)
+      sphereRef.current.material.emissiveIntensity = pulseIntensity
+      
+      // Also adjust opacity
+      sphereRef.current.material.opacity = isPlayerNear ? 0.9 : 0.8
+    }
+  })
+  
+  // Get display text based on status
+  const getDisplayText = () => {
+    switch(status) {
+      case 'purchased': return "ad space sold"
+      case 'pending': return "ad space pending"
+      default: return "advertise here"
+    }
+  }
+  
+  return (
+    <group position={[position.x, position.y, position.z]}>
+      {/* Floating sphere */}
+      <mesh ref={sphereRef}>
+        <sphereGeometry args={[1, 32, 32]} />
+        <meshStandardMaterial 
+          color={getSphereColor()} 
+          emissive={getSphereColor()}
+          emissiveIntensity={0.5}
+          transparent
+          opacity={0.8}
+        />
+      </mesh>
+      
+      {/* Advertisement text using Text component instead of HTML */}
+      <group ref={textGroupRef} position={[0, 1.5, 0]}>
+        <Text
+          color="white"
+          fontSize={0.5}
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.05}
+          outlineColor="#000000"
+          renderOrder={1}
+        >
+          {getDisplayText()}
+        </Text>
+      </group>
+      
+      {/* Interactive message when player is near */}
+      {isPlayerNear && (
+        <Html position={[0, 3, 0]} center wrapperClass="html-portal">
+          <div className="bg-black/80 backdrop-blur-md p-3 rounded-lg border border-white/20 text-white w-72 text-center">
+            <p className="text-sm font-bold mb-1">Premium Ad Space #{id}</p>
+            <p className="text-xs mb-2">Buy this ad space for $1K USD annually</p>
+            
+            <div className="flex flex-col gap-2">
+              {/* Direct Buy Now button */}
+              <a 
+                href="https://buy.stripe.com/5kA29I0C06tca0EdQQ"
+                className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-3 py-1.5 rounded hover:opacity-90 transition-opacity"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Buy Now
+              </a>
+              
+              {/* Web email link */}
+              <a 
+                href={`https://mail.google.com/mail/?view=cm&fs=1&to=ikramandhakim@gmail.com&su=Purchase Dream Explorer Ad Space ${id}&body=I'm interested in purchasing ad space ${id} in the Dream Explorer.`}
+                className="inline-block bg-white text-black text-xs font-medium px-3 py-1.5 rounded hover:bg-white/90 transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Contact via Email
+              </a>
+            </div>
+            
+            {/* Payment follow-up instructions */}
+            <div className="mt-3 text-xs text-gray-300 border-t border-gray-700 pt-2">
+              <p className="mb-1">After payment, please email the receipt and your preferred sphere id (e.g: #{id}) to ikramandhakim@gmail.com to finalize the process.</p>
+              <p className="mb-1">Ad space setup typically takes 24-48 hours.</p>
+              <p>
+                Questions? Connect on{" "}
+                <a 
+                  href="https://x.com/Kaberikram" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
+                  X @Kaberikram
+                </a>
+              </p>
+            </div>
+          </div>
+        </Html>
+      )}
+    </group>
+  )
+}
+
 // Preload THREE.js resources
 const preloadThreeResources = () => {
   // Only run on client side
@@ -1183,6 +1393,11 @@ function DreamExplorer() {
   // Handle explorer position updates
   const handlePositionChange = (position: { x: number, z: number }) => {
     setExplorerPosition(position)
+    
+    // Make the position available globally for other components
+    if (typeof window !== 'undefined') {
+      window.explorerPosition = position
+    }
   }
   
   // Toggle instructions panel
@@ -1214,7 +1429,7 @@ function DreamExplorer() {
         
         {/* Instructions overlay - now at the top and collapsible with icon */}
         <div 
-          className={`absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-auto md:w-80 bg-black/80 backdrop-blur-md rounded-lg border border-white/20 text-white text-sm transition-all duration-300 z-20 shadow-lg ${instructionsCollapsed ? 'p-0 h-12' : 'p-4'}`}
+          className={`absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-auto md:w-80 bg-black/80 backdrop-blur-md rounded-lg border border-white/20 text-white text-sm transition-all duration-300 z-50 shadow-lg ${instructionsCollapsed ? 'p-0 h-12' : 'p-4'}`}
         >
           <div 
             className={`flex justify-between items-center w-full h-full ${instructionsCollapsed ? 'px-4 cursor-pointer' : ''}`}
@@ -1273,4 +1488,11 @@ export default function ExplorePage() {
   }, []);
   
   return <DreamExplorer />
+}
+
+// Add TypeScript declaration for the global window object
+declare global {
+  interface Window {
+    explorerPosition?: { x: number, z: number }
+  }
 } 

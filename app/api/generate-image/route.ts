@@ -1,65 +1,42 @@
 import { NextResponse } from "next/server"
 import axios from "axios"
 import FormData from "form-data"
-
-// In-memory store for tracking IP-based usage
-// In a production app, this would be a database or Redis cache
-const ipUsageStore: Record<string, { count: number, date: string }> = {}
-
-// Daily generation limit
-const DAILY_LIMIT = 2
-
-// Helper function to get client IP
-function getClientIP(request: Request): string {
-  // Get IP from headers (when behind a proxy/load balancer)
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim()
-  }
-  
-  // Fallback to direct connection IP (may be unavailable in some environments)
-  // In production, you'd want to use a more robust method
-  return 'unknown-ip'
-}
-
-// Check if the IP has reached daily limit
-function checkIPLimit(ip: string): boolean {
-  const today = new Date().toDateString()
-  
-  // If no record exists or it's from a different day, create/reset it
-  if (!ipUsageStore[ip] || ipUsageStore[ip].date !== today) {
-    ipUsageStore[ip] = { count: 0, date: today }
-  }
-  
-  // Check if limit reached
-  return ipUsageStore[ip].count < DAILY_LIMIT
-}
-
-// Increment usage count for an IP
-function incrementIPUsage(ip: string): void {
-  const today = new Date().toDateString()
-  
-  if (!ipUsageStore[ip]) {
-    ipUsageStore[ip] = { count: 0, date: today }
-  }
-  
-  if (ipUsageStore[ip].date !== today) {
-    ipUsageStore[ip] = { count: 0, date: today }
-  }
-  
-  ipUsageStore[ip].count += 1
-}
+import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 
 export async function POST(request: Request) {
   try {
-    // Get client IP
-    const clientIP = getClientIP(request)
-    
-    // Check if IP has reached daily limit
-    if (!checkIPLimit(clientIP)) {
+    // Check if API key is configured
+    if (!process.env.STABILITY_API_KEY) {
       return NextResponse.json(
-        { error: "Daily generation limit reached. Try again tomorrow." },
-        { status: 429 } // Too Many Requests
+        { 
+          error: "Stability API key is not configured. Please add STABILITY_API_KEY to your environment variables.",
+          debug: { missingApiKey: true }
+        },
+        { status: 500 }
+      )
+    }
+    
+    // Get the current user
+    const cookieStore = cookies()
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    // Log user information for debugging
+    console.log("User authentication check:", {
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      error: userError
+    })
+    
+    if (userError || !user) {
+      return NextResponse.json(
+        { 
+          error: "Authentication required",
+          debug: { userError }
+        },
+        { status: 401 }
       )
     }
     
@@ -104,16 +81,9 @@ export async function POST(request: Request) {
 
     // Convert the binary image data to base64
     const base64Image = Buffer.from(response.data).toString('base64')
-    
-    // Increment usage count for this IP
-    incrementIPUsage(clientIP)
-    
-    // Get remaining generations for this IP
-    const remainingGenerations = DAILY_LIMIT - ipUsageStore[clientIP].count
 
     return NextResponse.json({
       image: `data:image/webp;base64,${base64Image}`,
-      remainingGenerations,
       debug: {
         prompt: enhancedPrompt,
         model: "stable-image-core",
@@ -155,6 +125,11 @@ export async function POST(request: Request) {
       debugInfo = {
         status: error.response.status,
         data: errorData
+      }
+      
+      // Check for Stability AI credit limit errors
+      if (statusCode === 402 || (errorData && typeof errorData === 'object' && errorData.message && errorData.message.includes('credits'))) {
+        errorMessage = "The image generation service is currently unavailable due to credit limitations. Please try again later."
       }
     } else if (error.request) {
       // The request was made but no response was received

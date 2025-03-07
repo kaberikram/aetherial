@@ -59,7 +59,7 @@ export default function DreamDetail() {
       {/* Only show header on mobile */}
       <header className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm border-b border-zinc-800 px-4 py-3 md:hidden">
         <div className="flex items-center">
-          <Link href="/" className="p-2">
+          <Link href="/home" className="p-2">
             <ArrowLeft className="h-6 w-6" />
           </Link>
           <h1 className="text-lg font-semibold ml-2">Dream Details</h1>
@@ -69,7 +69,7 @@ export default function DreamDetail() {
       <main className="container mx-auto px-4 py-6 md:py-12 max-w-6xl">
         {/* Back button for desktop */}
         <div className="hidden md:block mb-6">
-          <Link href="/" className="inline-flex items-center text-zinc-400 hover:text-white transition-colors">
+          <Link href="/home" className="inline-flex items-center text-zinc-400 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5 mr-2" />
             <span>Back to Dreams</span>
           </Link>

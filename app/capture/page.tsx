@@ -108,7 +108,7 @@ export default function DreamCapture() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm border-b border-zinc-800 px-4 py-3">
         <div className="flex items-center justify-between">
-          <Link href="/" className="p-2">
+          <Link href="/home" className="p-2">
             <ArrowLeft className="h-6 w-6" />
           </Link>
           <h1 className="text-lg font-semibold">New Dream Entry</h1>

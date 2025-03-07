@@ -9,7 +9,7 @@ export function SidebarNav() {
   const pathname = usePathname()
   
   const isActive = (path: string) => {
-    if (path === "/" && pathname === "/") return true
+    if (path === "/home" && pathname === "/home") return true
     if (path !== "/" && pathname.startsWith(path)) return true
     return false
   }
@@ -32,9 +32,9 @@ export function SidebarNav() {
         {/* Navigation Links */}
         <nav className="flex-1 space-y-2">
           <Link 
-            href="/" 
+            href="/home" 
             className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-              isActive("/") 
+              isActive("/home") 
                 ? "bg-zinc-800/80 text-white" 
                 : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
