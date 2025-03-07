@@ -95,6 +95,18 @@ function incrementUsage() {
   localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(usage))
 }
 
+// Add this component before the DreamImageGenerator component
+function LoadingOverlay() {
+  return (
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+      <div className="bg-zinc-900/90 p-6 rounded-lg border border-zinc-700/50 flex flex-col items-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <p className="text-zinc-300 text-sm">Generating your dream visualization...</p>
+      </div>
+    </div>
+  )
+}
+
 export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
@@ -333,10 +345,17 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
         </div>
       )}
 
-      {/* Rest of the component with translations */}
+      {/* Add loading overlay when generating */}
+      {isGenerating && (
+        <LoadingOverlay />
+      )}
+
+      {/* Update the generated image container to be relative for overlay positioning */}
       {generatedImage && (
-        <div className="space-y-4">
+        <div className="space-y-4 relative">
           <div className={`relative overflow-hidden rounded-lg border border-zinc-700/50 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}>
+            {/* Show loading overlay when regenerating */}
+            {isGenerating && <LoadingOverlay />}
             <div 
               className={`transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
               onClick={toggleZoom}
