@@ -5,6 +5,7 @@ import "./globals.css"
 import { SidebarNav } from "@/components/sidebar-nav"
 import Link from "next/link"
 import Script from "next/script"
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -81,6 +82,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${inter.className} bg-black text-white`}>
+        <Toaster position="top-center" />
         <div className="flex h-screen">
           <SidebarNav />
           <div className="flex-1 md:pl-64">
