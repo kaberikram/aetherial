@@ -79,7 +79,7 @@ export default function DreamCapture() {
     const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
     dreams.push(dreamToSave)
     localStorage.setItem("dreams", JSON.stringify(dreams))
-    router.push("/")
+    router.push("/home")
   }
 
   const handleSaveAndVisualize = () => {
