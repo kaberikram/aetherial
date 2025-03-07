@@ -316,8 +316,10 @@ export default function DreamCapture() {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <BottomNav />
+      {/* Bottom Navigation - Only show on mobile */}
+      <div className="md:hidden">
+        <BottomNav />
+      </div>
     </div>
   )
 }
