@@ -29,13 +29,9 @@ class RippleShaderMaterial extends THREE.ShaderMaterial {
         playerPos: { value: new THREE.Vector2(0, 0) },
         prevPlayerPos: { value: new THREE.Vector2(0, 0) },
         movementFactor: { value: 0.0 },
-        trailPositions: { value: [
-          new THREE.Vector2(0, 0), new THREE.Vector2(0, 0), new THREE.Vector2(0, 0),
-          new THREE.Vector2(0, 0), new THREE.Vector2(0, 0), new THREE.Vector2(0, 0),
-          new THREE.Vector2(0, 0), new THREE.Vector2(0, 0)
-        ]}, // 8 trail positions
-        trailTimes: { value: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] }, // 8 trail times
-        dreamPoints: { value: [] },
+        trailPositions: { value: Array(8).fill(0).map(() => new THREE.Vector2(0, 0)) }, // Ensure 8 properly initialized Vector2 objects
+        trailTimes: { value: Array(8).fill(0.0) }, // 8 trail times
+        dreamPoints: { value: Array(20).fill(0).map(() => new THREE.Vector2(0, 0)) }, // Ensure 20 properly initialized Vector2 objects
         resolution: { value: new THREE.Vector2(1, 1) },
         rippleStrength: { value: 0.5 },
         dreamRippleStrength: { value: 0.3 },
@@ -185,17 +181,14 @@ function WaterFloor({ playerPosition, dreams }: {
 }) {
   const materialRef = useRef<RippleShaderMaterial>(null);
   const { viewport } = useThree();
-  const dreamPositionsRef = useRef<THREE.Vector2[]>([
-    // Initialize with 20 empty positions to prevent undefined errors
-    ...Array(20).fill(0).map(() => new THREE.Vector2(0, 0))
-  ]);
+  const dreamPositionsRef = useRef<THREE.Vector2[]>(
+    Array(20).fill(0).map(() => new THREE.Vector2(0, 0))
+  );
   const prevPositionRef = useRef<THREE.Vector2>(new THREE.Vector2(0, 0));
-  const trailPositionsRef = useRef<THREE.Vector2[]>([
-    new THREE.Vector2(0, 0), new THREE.Vector2(0, 0), new THREE.Vector2(0, 0),
-    new THREE.Vector2(0, 0), new THREE.Vector2(0, 0), new THREE.Vector2(0, 0),
-    new THREE.Vector2(0, 0), new THREE.Vector2(0, 0)
-  ]); // 8 trail positions
-  const trailTimesRef = useRef<number[]>([0, 0, 0, 0, 0, 0, 0, 0]); // 8 trail times
+  const trailPositionsRef = useRef<THREE.Vector2[]>(
+    Array(8).fill(0).map(() => new THREE.Vector2(0, 0))
+  ); // 8 trail positions
+  const trailTimesRef = useRef<number[]>(Array(8).fill(0)); // 8 trail times
   const lastUpdateTimeRef = useRef<number>(0);
   const movementFactorRef = useRef<number>(0);
   
@@ -321,25 +314,34 @@ function WaterFloor({ playerPosition, dreams }: {
         if (currentTime - lastUpdateTimeRef.current > 0.08) { // Update trail more frequently
           // Shift trail positions
           for (let i = trailPositionsRef.current.length - 1; i > 0; i--) {
-            trailPositionsRef.current[i].copy(trailPositionsRef.current[i-1]);
-            trailTimesRef.current[i] = trailTimesRef.current[i-1];
+            if (trailPositionsRef.current[i] && trailPositionsRef.current[i-1]) {
+              trailPositionsRef.current[i].copy(trailPositionsRef.current[i-1]);
+              trailTimesRef.current[i] = trailTimesRef.current[i-1];
+            }
           }
           
           // Add current position to trail
-          trailPositionsRef.current[0].copy(prevPositionRef.current);
-          trailTimesRef.current[0] = currentTime;
+          if (trailPositionsRef.current[0] && prevPositionRef.current) {
+            trailPositionsRef.current[0].copy(prevPositionRef.current);
+            trailTimesRef.current[0] = currentTime;
+          }
           
-          // Update the uniforms
+          // Update the uniforms with a safe copy of the trail positions
           if (materialRef.current.uniforms.trailPositions) {
-            materialRef.current.uniforms.trailPositions.value = trailPositionsRef.current;
+            // Ensure all positions are valid Vector2 objects
+            const safeTrailPositions = trailPositionsRef.current.map(pos => 
+              pos instanceof THREE.Vector2 ? pos : new THREE.Vector2(0, 0)
+            );
+            materialRef.current.uniforms.trailPositions.value = safeTrailPositions;
           }
           if (materialRef.current.uniforms.trailTimes) {
-            materialRef.current.uniforms.trailTimes.value = trailTimesRef.current;
+            materialRef.current.uniforms.trailTimes.value = [...trailTimesRef.current];
           }
+          
           lastUpdateTimeRef.current = currentTime;
         }
       } else {
-        // Player is not moving - decrease movement factor gradually
+        // Player is not moving - decrease movement factor
         movementFactorRef.current = Math.max(0.0, movementFactorRef.current - 0.05);
       }
       
@@ -528,102 +530,49 @@ function Explorer({ onPositionChange, touchControls }: {
   onPositionChange: (position: { x: number, z: number }) => void,
   touchControls: { active: boolean, x: number, y: number }
 }) {
-  const sphereRef = useRef<THREE.Mesh>(null)
   const { camera } = useThree()
-  const [position, setPosition] = useState({ x: 0, z: 0 })
+  const sphereRef = useRef<THREE.Mesh>(null)
+  
+  // Use refs instead of state for frequently changing values
+  const positionRef = useRef<{ x: number, z: number }>({ x: 0, z: 0 })
+  const pulseIntensityRef = useRef<number>(1)
+  
+  // Keep state for values that don't change every frame
   const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false })
-  const [pulseIntensity, setPulseIntensity] = useState(1)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  
+  // Refs for smooth camera movement
+  const targetPositionRef = useRef<{ x: number, z: number }>({ x: 0, z: 0 })
+  const cameraTargetRef = useRef<{ x: number, z: number }>({ x: 0, z: 12 })
+  const isInitializedRef = useRef<boolean>(false)
   
   // Movement parameters
   const moveSpeed = 0.15
-  const smoothingFactor = 0.1 // Lower = smoother but slower response (0.1 = 10% of the way each frame)
-  const cameraSmoothingFactor = 0.05 // Even smoother camera movement
+  const smoothingFactor = 0.1
+  const cameraSmoothingFactor = 0.05
   
-  // Target positions for smooth interpolation
-  const targetPositionRef = useRef({ x: 0, z: 0 })
-  const cameraTargetRef = useRef({ x: 0, z: 12 }) // Initialize with correct offset
-  const isInitializedRef = useRef(false)
-  
-  // Sound effect for boat movement
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
-  const isMovingRef = useRef(false)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const gainNodeRef = useRef<GainNode | null>(null)
-  const lastSpeedRef = useRef(0)
-  
-  // Initialize audio with better control
+  // Initialize audio
   useEffect(() => {
-    // Create audio context for more control
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    audioContextRef.current = audioContext
-    
-    // Create gain node for volume control
-    const gainNode = audioContext.createGain()
-    gainNode.gain.value = 0 // Start silent
-    gainNode.connect(audioContext.destination)
-    gainNodeRef.current = gainNode
-    
-    // Create audio element
-    const boatAudio = new Audio('/sounds/boat.mp3')
-    boatAudio.loop = true
-    
-    // Connect audio to gain node
-    const source = audioContext.createMediaElementSource(boatAudio)
-    source.connect(gainNode)
-    
-    // Start playing (will be silent until we adjust gain)
-    boatAudio.play().catch(e => console.log('Audio play error:', e))
-    setAudio(boatAudio)
+    // Initialize ambient sound
+    const ambientSound = new Audio('/sounds/boat.mp3')
+    ambientSound.loop = true
+    ambientSound.volume = 0.2
+    audioRef.current = ambientSound
     
     return () => {
-      // Clean up audio when component unmounts
-      if (boatAudio) {
-        boatAudio.pause()
-        boatAudio.src = ''
-      }
-      if (audioContext.state !== 'closed') {
-        audioContext.close()
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
       }
     }
   }, [])
   
-  // Adjust sound volume based on movement speed
+  // Update audio based on movement
   useEffect(() => {
-    if (!gainNodeRef.current) return
+    if (!audioRef.current) return
     
-    const updateAudio = () => {
-      // Calculate movement speed
-      const isMoving = keys.w || keys.a || keys.s || keys.d || touchControls.active
-      
-      // Calculate speed based on input
-      let speed = 0
-      if (isMoving) {
-        // Base speed from keyboard/touch input
-        const keyboardSpeed = (keys.w || keys.s ? 1 : 0) + (keys.a || keys.d ? 0.5 : 0)
-        const touchSpeed = touchControls.active ? 
-          Math.sqrt(touchControls.x * touchControls.x + touchControls.y * touchControls.y) : 0
-        
-        speed = Math.max(keyboardSpeed, touchSpeed)
-        speed = Math.min(speed, 1.5) // Cap maximum speed
-      }
-      
-      // Smooth speed transitions
-      const smoothedSpeed = lastSpeedRef.current + (speed - lastSpeedRef.current) * 0.1
-      lastSpeedRef.current = smoothedSpeed
-      
-      // Set volume based on speed (with smooth transition)
-      if (gainNodeRef.current) {
-        const targetVolume = smoothedSpeed * 0.3 // Max volume 0.3
-        gainNodeRef.current.gain.setTargetAtTime(targetVolume, audioContextRef.current!.currentTime, 0.2)
-      }
-      
-      // Update moving state for other effects
-      if (smoothedSpeed > 0.05 && !isMovingRef.current) {
-        isMovingRef.current = true
-      } else if (smoothedSpeed < 0.05 && isMovingRef.current) {
-        isMovingRef.current = false
-      }
-    }
+    // Start playing if any movement key is pressed or touch controls are active
+    const isMoving = keys.w || keys.a || keys.s || keys.d || touchControls.active
     
     // Update audio immediately
     updateAudio()
@@ -639,7 +588,7 @@ function Explorer({ onPositionChange, touchControls }: {
     return () => {
       cancelAnimationFrame(frameId)
     }
-  }, [keys, touchControls, audio])
+  }, [keys, touchControls])
   
   // Set up camera at an angle similar to the reference image - run immediately
   useEffect(() => {
@@ -682,6 +631,27 @@ function Explorer({ onPositionChange, touchControls }: {
     }
   }, [])
   
+  // Update audio volume and playback based on movement
+  const updateAudio = () => {
+    if (!audioRef.current) return
+    
+    const isMoving = keys.w || keys.a || keys.s || keys.d || touchControls.active
+    
+    if (isMoving) {
+      if (audioRef.current.paused) {
+        audioRef.current.play().catch(e => console.error("Audio play failed:", e))
+      }
+      // Gradually increase volume when moving
+      audioRef.current.volume = Math.min(0.2, audioRef.current.volume + 0.01)
+    } else {
+      // Gradually decrease volume when not moving
+      audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.01)
+      if (audioRef.current.volume <= 0.01) {
+        audioRef.current.pause()
+      }
+    }
+  }
+  
   // Update position based on controls
   useFrame((state, delta) => {
     if (!sphereRef.current) return
@@ -718,12 +688,15 @@ function Explorer({ onPositionChange, touchControls }: {
     targetPositionRef.current = { x: targetX, z: targetZ }
     
     // Smoothly interpolate current position towards target position (exponential smoothing)
-    const newX = position.x + (targetX - position.x) * smoothingFactor
-    const newZ = position.z + (targetZ - position.z) * smoothingFactor
+    const newX = positionRef.current.x + (targetX - positionRef.current.x) * smoothingFactor
+    const newZ = positionRef.current.z + (targetZ - positionRef.current.z) * smoothingFactor
     
     // Only update if position changed significantly
-    if (Math.abs(newX - position.x) > 0.001 || Math.abs(newZ - position.z) > 0.001) {
-      setPosition({ x: newX, z: newZ })
+    if (Math.abs(newX - positionRef.current.x) > 0.001 || Math.abs(newZ - positionRef.current.z) > 0.001) {
+      // Update the ref instead of state
+      positionRef.current = { x: newX, z: newZ }
+      
+      // Only call onPositionChange when position changes significantly
       onPositionChange({ x: newX, z: newZ })
       
       // Set camera target position
@@ -758,10 +731,15 @@ function Explorer({ onPositionChange, touchControls }: {
     
     // Pulsating effect for the sphere
     const newPulseIntensity = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.3
-    setPulseIntensity(newPulseIntensity)
+    pulseIntensityRef.current = newPulseIntensity
     
     if (sphereRef.current.material instanceof THREE.MeshStandardMaterial) {
       sphereRef.current.material.emissiveIntensity = newPulseIntensity
+    }
+    
+    // Update global explorer position for other components to access
+    if (typeof window !== 'undefined') {
+      window.explorerPosition = { x: newX, z: newZ }
     }
   })
   
@@ -771,7 +749,7 @@ function Explorer({ onPositionChange, touchControls }: {
       <meshStandardMaterial 
         color="white" 
         emissive="white" 
-        emissiveIntensity={pulseIntensity}
+        emissiveIntensity={pulseIntensityRef.current}
         toneMapped={false}
       />
     </mesh>
@@ -1392,12 +1370,16 @@ function DreamExplorer() {
   
   // Handle explorer position updates
   const handlePositionChange = (position: { x: number, z: number }) => {
-    setExplorerPosition(position)
-    
-    // Make the position available globally for other components
-    if (typeof window !== 'undefined') {
-      window.explorerPosition = position
+    // Only update state if position has changed significantly
+    if (
+      !explorerPosition || 
+      Math.abs(position.x - explorerPosition.x) > 0.001 || 
+      Math.abs(position.z - explorerPosition.z) > 0.001
+    ) {
+      setExplorerPosition(position)
     }
+    
+    // The global window.explorerPosition is now set directly in the Explorer component
   }
   
   // Toggle instructions panel
