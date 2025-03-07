@@ -113,9 +113,24 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
         message: error.message
       })
       
-      const errorMessage = error.response?.data?.error || "Failed to generate image. Please try again."
+      // Extract error message safely - avoid passing objects to React
+      let errorMessage = "Failed to generate image. Please try again."
+      
+      // Handle different error response structures
+      if (error.response?.data) {
+        // Use message field if available, otherwise use error field if it's a string
+        if (typeof error.response.data.message === 'string') {
+          errorMessage = error.response.data.message
+        } else if (typeof error.response.data.error === 'string') {
+          errorMessage = error.response.data.error
+        }
+        
+        // Store debug info if available
+        setDebugInfo(error.response.data.debug || error.response.data)
+      }
+      
+      // Set error as a string, never as an object
       setError(errorMessage)
-      setDebugInfo(error.response?.data || { error: error.message })
       
       // Check for specific error types
       if (error.response?.status === 401) {
@@ -127,6 +142,11 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
         // Missing API key error
         toast.error("Configuration error", {
           description: "The image generation service is not properly configured. Please contact the administrator."
+        })
+      } else if (error.response?.status === 504) {
+        // Gateway timeout error
+        toast.error("Request timeout", {
+          description: "The image generation request timed out. Please try again later."
         })
       } else {
         toast.error("Image generation failed", {
@@ -363,7 +383,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
       )}
 
       {/* Add donate button to error state when API credits are depleted */}
-      {error && error.includes("credit") && (
+      {error && typeof error === 'string' && error.includes("credit") && (
         <div className="mt-4 bg-zinc-800/50 rounded-lg p-4 text-sm border border-amber-500/20">
           <p className="text-zinc-300 mb-2">
             It looks like our image generation service has reached its capacity.
@@ -377,6 +397,18 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
           >
             💳 Support this feature
           </Button>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">Error</p>
+              <p>{error}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

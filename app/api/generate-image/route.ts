@@ -2,6 +2,10 @@ import { NextResponse } from "next/server"
 import axios from "axios"
 import FormData from "form-data"
 
+export const config = {
+  maxDuration: 300, // 5 minutes for Vercel
+}
+
 export async function POST(request: Request) {
   try {
     // Check if API key is configured
@@ -9,6 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { 
           error: "Stability API key is not configured. Please add STABILITY_API_KEY to your environment variables.",
+          message: "Image generation service is not properly configured.",
           debug: { missingApiKey: true }
         },
         { status: 500 }
@@ -19,7 +24,10 @@ export async function POST(request: Request) {
 
     if (!prompt) {
       return NextResponse.json(
-        { error: "Prompt is required" },
+        { 
+          error: "Missing required parameter",
+          message: "Prompt is required" 
+        },
         { status: 400 }
       )
     }
@@ -36,13 +44,16 @@ export async function POST(request: Request) {
       height: height // Default is 1024
     }
 
-    // Call Stability AI's Stable Image Core API (more cost-effective)
+    console.log("Calling Stability API with payload:", JSON.stringify(payload))
+
+    // Call Stability AI's Stable Image Core API with increased timeout
     const response = await axios.postForm(
       "https://api.stability.ai/v2beta/stable-image/generate/core",
       axios.toFormData(payload, new FormData()),
       {
         validateStatus: undefined,
         responseType: "arraybuffer",
+        timeout: 120000, // 2 minute timeout
         headers: { 
           Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
           Accept: "image/*"
@@ -51,7 +62,19 @@ export async function POST(request: Request) {
     )
 
     if (response.status !== 200) {
-      throw new Error(`API Error: ${response.status}: ${Buffer.from(response.data).toString()}`)
+      // Convert buffer to string for error message
+      const errorText = Buffer.from(response.data).toString()
+      console.error(`Stability API Error (${response.status}):`, errorText)
+      
+      // Return a structured error response
+      return NextResponse.json(
+        { 
+          error: "Image generation failed",
+          message: `API Error: ${response.status}`,
+          details: errorText
+        },
+        { status: response.status }
+      )
     }
 
     // Convert the binary image data to base64
@@ -78,8 +101,8 @@ export async function POST(request: Request) {
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
-      errorMessage = error.message || "API Error"
-      statusCode = error.response.status
+      errorMessage = "Image generation service error"
+      statusCode = error.response.status || 500
       
       // Try to parse the error response if it's a buffer
       let errorData = error.response.data
@@ -104,7 +127,9 @@ export async function POST(request: Request) {
       
       // Check for Stability AI credit limit errors
       if (statusCode === 402 || (errorData && typeof errorData === 'object' && errorData.message && errorData.message.includes('credits'))) {
-        errorMessage = "The image generation service is currently unavailable due to credit limitations. Please try again later."
+        errorMessage = "The image generation service is currently unavailable due to credit limitations."
+      } else if (statusCode === 504) {
+        errorMessage = "The image generation request timed out. Please try again."
       }
     } else if (error.request) {
       // The request was made but no response was received
@@ -114,15 +139,17 @@ export async function POST(request: Request) {
       }
     } else {
       // Something happened in setting up the request that triggered an Error
-      errorMessage = error.message
+      errorMessage = error.message || "Unknown error occurred"
       debugInfo = {
         message: error.message
       }
     }
 
+    // Always return a structured error with a message string
     return NextResponse.json(
       { 
-        error: errorMessage,
+        error: true,
+        message: errorMessage, // This is what will be displayed to the user
         debug: debugInfo
       },
       { status: statusCode }
