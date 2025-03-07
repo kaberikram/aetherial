@@ -1035,21 +1035,39 @@ function AdvertisementSpheres() {
       id: string;
       position: { x: number; y: number; z: number };
       status: 'available' | 'pending' | 'purchased';
+      advertiser?: string;
+      url?: string;
     }> = [];
     
     // 1. Outer circle (6 spheres) - spread wider
     const outerRadius = 35
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2
-      spherePositions.push({
+      
+      const sphereData: {
+        id: string;
+        position: { x: number; y: number; z: number };
+        status: 'available' | 'pending' | 'purchased';
+        advertiser?: string;
+        url?: string;
+      } = {
         id: `Circle-${i+1}`,
         position: {
           x: Math.cos(angle) * outerRadius,
           y: 1 + (i % 3) * 0.3, // Vary height slightly
           z: Math.sin(angle) * outerRadius
         },
-        status: 'available' as const
-      })
+        status: 'available'
+      }
+      
+      // Set Circle-6 as purchased by Kawenlah
+      if (i === 5) {
+        sphereData.status = 'purchased'
+        sphereData.advertiser = 'kawenlah'
+        sphereData.url = 'https://www.kawenlah.com/'
+      }
+      
+      spherePositions.push(sphereData)
     }
     
     // 2. Four spheres at wider corners
@@ -1074,6 +1092,8 @@ function AdvertisementSpheres() {
           index={index}
           id={sphere.id}
           status={sphere.status}
+          advertiser={sphere.advertiser}
+          url={sphere.url}
         />
       ))}
     </group>
@@ -1081,11 +1101,13 @@ function AdvertisementSpheres() {
 }
 
 // Individual floating advertisement sphere with animation
-function FloatingAdSphere({ position, index, id, status }: { 
+function FloatingAdSphere({ position, index, id, status, advertiser, url }: { 
   position: { x: number, y: number, z: number }, 
   index: number,
   id: string,
-  status: 'available' | 'pending' | 'purchased'
+  status: 'available' | 'pending' | 'purchased',
+  advertiser?: string,
+  url?: string
 }) {
   const sphereRef = useRef<THREE.Mesh>(null)
   const textGroupRef = useRef<THREE.Group>(null)
@@ -1097,9 +1119,13 @@ function FloatingAdSphere({ position, index, id, status }: {
   // Set color based on status
   const getSphereColor = () => {
     switch(status) {
-      case 'purchased': return "lightblue"
-      case 'pending': return "lightyellow"
-      default: return "white"
+      case 'purchased': 
+        // Keep all spheres white for consistency, including Kawenlah
+        return "white"
+      case 'pending': 
+        return "lightyellow"
+      default: 
+        return "white"
     }
   }
   
@@ -1140,17 +1166,27 @@ function FloatingAdSphere({ position, index, id, status }: {
     if (sphereRef.current.material instanceof THREE.MeshStandardMaterial) {
       const baseIntensity = isPlayerNear ? 1.0 : 0.5
       const pulseIntensity = baseIntensity + Math.sin(time * 0.8 + phaseOffset) * (isPlayerNear ? 0.4 : 0.2)
-      sphereRef.current.material.emissiveIntensity = pulseIntensity
       
-      // Also adjust opacity
-      sphereRef.current.material.opacity = isPlayerNear ? 0.9 : 0.8
+      // Special glow for Kawenlah sphere
+      if (advertiser === 'kawenlah') {
+        // Set pink emissive color for Kawenlah
+        sphereRef.current.material.emissive.set('#AF1057')
+        sphereRef.current.material.emissiveIntensity = pulseIntensity * 0.7
+        sphereRef.current.material.opacity = isPlayerNear ? 0.9 : 0.8
+      } else {
+        // Default white glow for other spheres
+        sphereRef.current.material.emissiveIntensity = pulseIntensity
+        sphereRef.current.material.opacity = isPlayerNear ? 0.9 : 0.8
+      }
     }
   })
   
   // Get display text based on status
   const getDisplayText = () => {
     switch(status) {
-      case 'purchased': return "ad space sold"
+      case 'purchased': 
+        if (advertiser === 'kawenlah') return "kawenlah.com"
+        return "ad space sold"
       case 'pending': return "ad space pending"
       default: return "advertise here"
     }
@@ -1170,67 +1206,113 @@ function FloatingAdSphere({ position, index, id, status }: {
         />
       </mesh>
       
-      {/* Advertisement text using Text component instead of HTML */}
+      {/* Advertisement text or logo */}
       <group ref={textGroupRef} position={[0, 1.5, 0]}>
-        <Text
-          color="white"
-          fontSize={0.5}
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.05}
-          outlineColor="#000000"
-          renderOrder={1}
-        >
-          {getDisplayText()}
-        </Text>
+        {advertiser === 'kawenlah' ? (
+          // Kawenlah logo - increased scale for better visibility
+          <Html transform scale={0.25} position={[0, 0, 0]} center>
+            <div className="kawenlah-logo-container" style={{ 
+              transform: 'scale(2.5)',
+              filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))'
+            }}>
+              <img 
+                src="/kawenlah-logo.svg" 
+                alt="Kawenlah.com" 
+                style={{ 
+                  width: '160px', 
+                  height: '44px',
+                  filter: 'drop-shadow(0 0 5px rgba(175, 16, 87, 0.8))'
+                }}
+              />
+            </div>
+          </Html>
+        ) : (
+          // Regular text for other ads
+          <Text
+            color="white"
+            fontSize={0.5}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.05}
+            outlineColor="#000000"
+            renderOrder={1}
+          >
+            {getDisplayText()}
+          </Text>
+        )}
       </group>
       
       {/* Interactive message when player is near */}
       {isPlayerNear && (
         <Html position={[0, 3, 0]} center wrapperClass="html-portal">
-          <div className="bg-black/80 backdrop-blur-md p-3 rounded-lg border border-white/20 text-white w-72 text-center">
-            <p className="text-sm font-bold mb-1">Premium Ad Space #{id}</p>
-            <p className="text-xs mb-2">Buy this ad space for $1K USD annually</p>
-            
-            <div className="flex flex-col gap-2">
-              {/* Direct Buy Now button */}
-              <a 
-                href="https://buy.stripe.com/5kA29I0C06tca0EdQQ"
-                className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-3 py-1.5 rounded hover:opacity-90 transition-opacity"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Buy Now
-              </a>
+          {advertiser === 'kawenlah' ? (
+            // Custom popup for Kawenlah - smaller and more compact
+            <div className="bg-black/90 backdrop-blur-md p-3 rounded-lg border border-[#AF1057]/50 text-white w-64 text-center">
+              <div className="flex justify-center mb-1">
+                <img 
+                  src="/kawenlah-logo.svg" 
+                  alt="Kawenlah.com" 
+                  className="w-36 h-auto"
+                />
+              </div>
+              <p className="text-xs font-bold mb-1">Digital Wedding Cards & Services</p>
+              <p className="text-xs mb-2 text-zinc-300">Create beautiful animated wedding cards, RSVP & gift lists</p>
               
-              {/* Web email link */}
               <a 
-                href={`https://mail.google.com/mail/?view=cm&fs=1&to=ikramandhakim@gmail.com&su=Purchase Dream Explorer Ad Space ${id}&body=I'm interested in purchasing ad space ${id} in the Dream Explorer.`}
-                className="inline-block bg-white text-black text-xs font-medium px-3 py-1.5 rounded hover:bg-white/90 transition-colors"
+                href="https://www.kawenlah.com/"
+                className="inline-block bg-gradient-to-r from-[#AF1057] to-[#222222] text-white text-xs font-medium px-3 py-1.5 rounded-full hover:opacity-90 transition-opacity w-full"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Contact via Email
+                Visit Kawenlah.com
               </a>
             </div>
-            
-            {/* Payment follow-up instructions */}
-            <div className="mt-3 text-xs text-gray-300 border-t border-gray-700 pt-2">
-              <p className="mb-1">After payment, please email the receipt and your preferred sphere id (e.g: #{id}) to ikramandhakim@gmail.com to finalize the process.</p>
-              <p className="mb-1">Ad space setup typically takes 24-48 hours.</p>
-              <p>
-                Questions? Connect on{" "}
+          ) : (
+            // Default popup for other ad spaces
+            <div className="bg-black/80 backdrop-blur-md p-3 rounded-lg border border-white/20 text-white w-72 text-center">
+              <p className="text-sm font-bold mb-1">Premium Ad Space #{id}</p>
+              <p className="text-xs mb-2">Buy this ad space for $1K USD annually</p>
+              
+              <div className="flex flex-col gap-2">
+                {/* Direct Buy Now button */}
                 <a 
-                  href="https://x.com/Kaberikram" 
-                  target="_blank" 
+                  href="https://buy.stripe.com/5kA29I0C06tca0EdQQ"
+                  className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-3 py-1.5 rounded hover:opacity-90 transition-opacity"
+                  target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline"
                 >
-                  X @Kaberikram
+                  Buy Now
                 </a>
-              </p>
+                
+                {/* Web email link */}
+                <a 
+                  href={`https://mail.google.com/mail/?view=cm&fs=1&to=ikramandhakim@gmail.com&su=Purchase Dream Explorer Ad Space ${id}&body=I'm interested in purchasing ad space ${id} in the Dream Explorer.`}
+                  className="inline-block bg-white text-black text-xs font-medium px-3 py-1.5 rounded hover:bg-white/90 transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Contact via Email
+                </a>
+              </div>
+              
+              {/* Payment follow-up instructions */}
+              <div className="mt-3 text-xs text-gray-300 border-t border-gray-700 pt-2">
+                <p className="mb-1">After payment, please email the receipt and your preferred sphere id (e.g: #{id}) to ikramandhakim@gmail.com to finalize the process.</p>
+                <p className="mb-1">Ad space setup typically takes 24-48 hours.</p>
+                <p>
+                  Questions? Connect on{" "}
+                  <a 
+                    href="https://x.com/Kaberikram" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Twitter
+                  </a>
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </Html>
       )}
     </group>
