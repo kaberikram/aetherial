@@ -4,9 +4,58 @@ import { HomeIcon, PlusIcon, GlobeIcon, SettingsIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export function SidebarNav() {
   const pathname = usePathname()
+  const [language, setLanguage] = useState<'en' | 'ms'>('en')
+  
+  useEffect(() => {
+    // Initial load
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
+    if (savedLanguage) {
+      setLanguage(savedLanguage)
+    }
+
+    // Set up storage event listener for changes from other windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Set up event listener for changes in the same window
+    const handleLanguageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('storage-local', handleLanguageChange as any)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('storage-local', handleLanguageChange as any)
+    }
+  }, [])
+
+  const translations = {
+    en: {
+      home: "Home",
+      capture: "Capture",
+      explore: "Explore",
+      settings: "Settings"
+    },
+    ms: {
+      home: "Utama",
+      capture: "Rakam",
+      explore: "Layar",
+      settings: "Tetapan"
+    }
+  }
   
   const isActive = (path: string) => {
     if (path === "/home" && pathname === "/home") return true
@@ -40,7 +89,7 @@ export function SidebarNav() {
             }`}
           >
             <HomeIcon className="h-5 w-5" />
-            <span className="font-medium">Home</span>
+            <span className="font-medium">{translations[language].home}</span>
           </Link>
           
           <Link 
@@ -52,7 +101,7 @@ export function SidebarNav() {
             }`}
           >
             <PlusIcon className="h-5 w-5" />
-            <span className="font-medium">Capture</span>
+            <span className="font-medium">{translations[language].capture}</span>
           </Link>
           
           <Link 
@@ -73,7 +122,7 @@ export function SidebarNav() {
             }}
           >
             <GlobeIcon className="h-5 w-5" />
-            <span className="font-medium">Explore</span>
+            <span className="font-medium">{translations[language].explore}</span>
           </Link>
           
           <Link 
@@ -85,7 +134,7 @@ export function SidebarNav() {
             }`}
           >
             <SettingsIcon className="h-5 w-5" />
-            <span className="font-medium">Settings</span>
+            <span className="font-medium">{translations[language].settings}</span>
           </Link>
         </nav>
         

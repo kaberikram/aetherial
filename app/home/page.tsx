@@ -26,6 +26,15 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null)
+  const [language, setLanguage] = useState<'en' | 'ms'>('en');
+
+  useEffect(() => {
+    // Load language from local storage
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null;
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
+    }
+  }, []);
 
   useEffect(() => {
     addSampleDreamIfEmpty()
@@ -49,10 +58,30 @@ export default function Home() {
   // Function to get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return "Good Morning"
-    if (hour < 18) return "Good Afternoon"
-    return "Good Evening"
+    if (hour < 12) return language === 'en' ? "Good Morning" : "Selamat Pagi"
+    if (hour < 18) return language === 'en' ? "Good Afternoon" : "Selamat Petang"
+    return language === 'en' ? "Good Evening" : "Selamat Malam"
   }
+
+  // Translations for the home page
+  const translations = {
+    en: {
+      readyToCapture: "Ready to capture your dream?",
+      newDreamEntry: "New Dream Entry",
+      recentDreams: "Recent Dreams",
+      searchPlaceholder: "Search dreams...",
+      filterByEmotion: "Filter by Emotion",
+      emotions: ["Happy", "Excited", "Scared", "Anxious", "Confused", "Peaceful"],
+    },
+    ms: {
+      readyToCapture: "Bersedia untuk merekod mimpi anda?",
+      newDreamEntry: "Rekod Mimpi Baru",
+      recentDreams: "Mimpi Terkini",
+      searchPlaceholder: "Cari mimpi",
+      filterByEmotion: "Tapis mengikut Emosi",
+      emotions: ["Gembira", "Teruja", "Takut", "Cemas", "Keliru", "Tenang"],
+    }
+  };
 
   return (
     <div className="min-h-screen pb-16 md:pb-0 home-page">
@@ -64,12 +93,18 @@ export default function Home() {
       <main className="container mx-auto px-4 py-6 md:py-12 md:max-w-7xl">
         {/* Mobile layout - search bar at top */}
         <div className="md:hidden">
-          <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+          <SearchBar 
+            searchTerm={searchTerm} 
+            setSearchTerm={setSearchTerm} 
+            placeholder={translations[language].searchPlaceholder} 
+          />
           <FilterChips 
             activeFilters={activeFilters} 
             setActiveFilters={setActiveFilters} 
             selectedEmotion={selectedEmotion}
             setSelectedEmotion={setSelectedEmotion}
+            filterLabel={translations[language].filterByEmotion}
+            emotions={translations[language].emotions}
           />
         </div>
 
@@ -80,7 +115,7 @@ export default function Home() {
           </div>
           <div className="md:col-span-8">
             <h2 className="text-2xl font-bold">
-              {searchTerm || activeFilters.length > 0 ? "Search Results" : "Recent Dreams"}
+              {searchTerm || activeFilters.length > 0 ? "Search Results" : translations[language].recentDreams}
             </h2>
           </div>
         </div>
@@ -90,23 +125,29 @@ export default function Home() {
             <div className="md:sticky md:top-24 md:pr-4">
               {/* Only show heading on mobile */}
               <h1 className="text-2xl font-bold mb-1 md:hidden">{getGreeting()}</h1>
-              <p className="text-zinc-400 mb-6">Ready to capture your dream?</p>
+              <p className="text-zinc-400 mb-6">{translations[language].readyToCapture}</p>
               
               {/* Desktop layout - search bar in left column */}
               <div className="hidden md:block">
-                <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+                <SearchBar 
+                  searchTerm={searchTerm} 
+                  setSearchTerm={setSearchTerm} 
+                  placeholder={translations[language].searchPlaceholder} 
+                />
                 <FilterChips 
                   activeFilters={activeFilters} 
                   setActiveFilters={setActiveFilters} 
                   selectedEmotion={selectedEmotion}
                   setSelectedEmotion={setSelectedEmotion}
+                  filterLabel={translations[language].filterByEmotion}
+                  emotions={translations[language].emotions}
                 />
               </div>
 
               <Link href="/capture" className="block w-full mt-6">
                 <GradientButton className="w-full flex items-center justify-center gap-2">
                   <PlusIcon className="h-5 w-5" />
-                  New Dream Entry
+                  {translations[language].newDreamEntry}
                 </GradientButton>
               </Link>
             </div>
@@ -115,7 +156,7 @@ export default function Home() {
           <section className="md:col-span-8">
             {/* Only show heading on mobile */}
             <h2 className="text-2xl font-bold mb-4 md:hidden">
-              {searchTerm || activeFilters.length > 0 ? "Search Results" : "Recent Dreams"}
+              {searchTerm || activeFilters.length > 0 ? "Search Results" : translations[language].recentDreams}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

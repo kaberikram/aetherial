@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { SmileIcon, FrownIcon, SearchIcon } from "lucide-react"
 
 export type Emotion = "happy" | "scared" | "confused" | "peaceful" | "anxious" | "excited"
@@ -9,7 +10,62 @@ interface DreamCardProps {
   excerpt: string
 }
 
+const emotionTranslations = {
+  en: {
+    happy: "Happy",
+    excited: "Excited",
+    scared: "Scared",
+    anxious: "Anxious",
+    confused: "Confused",
+    peaceful: "Peaceful",
+    tapToView: "Tap to view details"
+  },
+  ms: {
+    happy: "Gembira",
+    excited: "Teruja",
+    scared: "Takut",
+    anxious: "Cemas",
+    confused: "Keliru",
+    peaceful: "Tenang",
+    tapToView: "Ketuk untuk lihat butiran"
+  }
+};
+
 export function DreamCard({ title, date, emotion, excerpt }: DreamCardProps) {
+  const [language, setLanguage] = useState<'en' | 'ms'>('en');
+
+  useEffect(() => {
+    // Initial load
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null;
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
+    }
+
+    // Set up storage event listener for changes from other windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms');
+      }
+    };
+
+    // Set up event listener for changes in the same window
+    const handleLanguageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms');
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage-local', handleLanguageChange as any);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage-local', handleLanguageChange as any);
+    };
+  }, []);
+
   const getEmotionIcon = (emotion: Emotion) => {
     switch (emotion) {
       case "happy":
@@ -56,13 +112,13 @@ export function DreamCard({ title, date, emotion, excerpt }: DreamCardProps) {
 
       <div className="flex items-center gap-1 mt-3">
         {getEmotionIcon(emotion)}
-        <span className="text-sm capitalize">{emotion}</span>
+        <span className="text-sm capitalize">{emotionTranslations[language][emotion]}</span>
       </div>
 
       <p className="mt-3 text-sm text-zinc-300 line-clamp-4 flex-grow">{excerpt}</p>
       
       <div className="mt-4 text-xs text-zinc-500 flex justify-end">
-        <span>Tap to view details</span>
+        <span>{emotionTranslations[language].tapToView}</span>
       </div>
     </div>
   )

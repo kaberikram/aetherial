@@ -16,12 +16,83 @@ interface DreamEntry {
   summary: string
 }
 
+const translations = {
+  en: {
+    loading: "Loading dream...",
+    dreamDetails: "Dream Details",
+    backToDreams: "Back to Dreams",
+    dream: "Dream",
+    emotion: "Emotion",
+    dreamSummary: "Dream Summary",
+    location: "Location",
+    visualization: "Visualization",
+    emotions: {
+      happy: "Happy",
+      scared: "Scared",
+      confused: "Confused",
+      peaceful: "Peaceful",
+      anxious: "Anxious",
+      excited: "Excited"
+    }
+  },
+  ms: {
+    loading: "Memuat mimpi...",
+    dreamDetails: "Butiran Mimpi",
+    backToDreams: "Kembali ke Mimpi",
+    dream: "Mimpi",
+    emotion: "Perasaan",
+    dreamSummary: "Ringkasan Mimpi",
+    location: "Lokasi",
+    visualization: "Visualisasi",
+    emotions: {
+      happy: "Gembira",
+      scared: "Takut",
+      confused: "Keliru",
+      peaceful: "Tenang",
+      anxious: "Cemas",
+      excited: "Teruja"
+    }
+  }
+} as const;
+
 export default function DreamDetail() {
   const params = useParams()
   const id = params.id as string
-  
   const [dream, setDream] = useState<DreamEntry | null>(null)
+  const [language, setLanguage] = useState<'en' | 'ms'>('en')
   const router = useRouter()
+
+  useEffect(() => {
+    // Initial load
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
+    if (savedLanguage) {
+      setLanguage(savedLanguage)
+    }
+
+    // Set up storage event listener for changes from other windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Set up event listener for changes in the same window
+    const handleLanguageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('storage-local', handleLanguageChange as any)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('storage-local', handleLanguageChange as any)
+    }
+  }, [])
 
   useEffect(() => {
     const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
@@ -36,19 +107,19 @@ export default function DreamDetail() {
   if (!dream) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-xl">Loading dream...</div>
+        <div className="animate-pulse text-xl">{translations[language].loading}</div>
       </div>
     )
   }
 
   // Format date nicely
   const dreamDate = new Date(dream.date)
-  const formattedDate = dreamDate.toLocaleDateString('en-US', { 
+  const formattedDate = dreamDate.toLocaleDateString(language === 'ms' ? 'ms-MY' : 'en-US', { 
     year: 'numeric', 
     month: '2-digit', 
     day: '2-digit' 
   })
-  const formattedTime = dreamDate.toLocaleTimeString('en-US', {
+  const formattedTime = dreamDate.toLocaleTimeString(language === 'ms' ? 'ms-MY' : 'en-US', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
@@ -62,7 +133,7 @@ export default function DreamDetail() {
           <Link href="/home" className="p-2">
             <ArrowLeft className="h-6 w-6" />
           </Link>
-          <h1 className="text-lg font-semibold ml-2">Dream Details</h1>
+          <h1 className="text-lg font-semibold ml-2">{translations[language].dreamDetails}</h1>
         </div>
       </header>
 
@@ -71,30 +142,32 @@ export default function DreamDetail() {
         <div className="hidden md:block mb-6">
           <Link href="/home" className="inline-flex items-center text-zinc-400 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5 mr-2" />
-            <span>Back to Dreams</span>
+            <span>{translations[language].backToDreams}</span>
           </Link>
         </div>
 
         <div className="space-y-2 mb-8">
-          <h2 className="text-2xl font-bold md:text-3xl">Dream {formattedDate}</h2>
+          <h2 className="text-2xl font-bold md:text-3xl">{translations[language].dream} {formattedDate}</h2>
           <p className="text-zinc-400">{formattedDate}, {formattedTime}</p>
         </div>
 
         <div className="md:grid md:grid-cols-2 md:gap-12 md:items-start">
           <div className="bg-zinc-900/50 rounded-lg p-6 border border-zinc-800/50 mb-8 md:mb-0 space-y-6">
             <div className="flex items-center gap-2">
-              <span className="text-lg font-medium">Emotion:</span>
-              <span className="px-3 py-1 bg-zinc-800 rounded-full text-sm capitalize">{dream.emotion}</span>
+              <span className="text-lg font-medium">{translations[language].emotion}:</span>
+              <span className="px-3 py-1 bg-zinc-800 rounded-full text-sm capitalize">
+                {translations[language].emotions[dream.emotion.toLowerCase() as keyof typeof translations['en']['emotions']]}
+              </span>
             </div>
             
             <div>
-              <h3 className="text-xl font-semibold mb-3">Dream Summary</h3>
+              <h3 className="text-xl font-semibold mb-3">{translations[language].dreamSummary}</h3>
               <p className="text-lg leading-relaxed text-zinc-100">{dream.summary}</p>
             </div>
             
             {dream.location && (
               <div>
-                <h3 className="text-xl font-semibold mb-2">Location</h3>
+                <h3 className="text-xl font-semibold mb-2">{translations[language].location}</h3>
                 <p className="text-lg text-zinc-300">{dream.location}</p>
               </div>
             )}
@@ -114,7 +187,7 @@ export default function DreamDetail() {
               </div>
             </div>
             
-            <h3 className="text-xl font-semibold mb-4 relative z-10">Visualization</h3>
+            <h3 className="text-xl font-semibold mb-4 relative z-10">{translations[language].visualization}</h3>
             <div className="relative z-10">
               <DreamImageGenerator summary={dream.summary} />
             </div>

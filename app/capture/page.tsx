@@ -26,8 +26,116 @@ interface DreamEntry {
   summary: string
 }
 
+interface Translations {
+  en: {
+    newDreamEntry: string
+    dreamTitle: string
+    enterTitle: string
+    whereWereYou: string
+    locationPlaceholder: string
+    whoWasThere: string
+    peoplePlaceholder: string
+    timeOfDay: string
+    whatWereYouDoing: string
+    activityPlaceholder: string
+    anythingUnusual: string
+    yes: string
+    no: string
+    describeWhat: string
+    seeSymbols: string
+    symbolsPlaceholder: string
+    howDidYouFeel: string
+    morning: string
+    afternoon: string
+    night: string
+    unknown: string
+    happy: string
+    scared: string
+    confused: string
+    peaceful: string
+    anxious: string
+    excited: string
+    howDidDreamEnd: string
+    selectOption: string
+    abruptly: string
+    slowly: string
+    wokeUpSuddenly: string
+    fadedAway: string
+    lastThingBeforeWaking: string
+    lastThingPlaceholder: string
+    dreamSummary: string
+    saveDream: string
+    saveAndVisualize: string
+    summaryTemplates: {
+      wasAt: string
+      with: string
+      noOne: string
+      itWas: string
+      and: string
+      somethingUnusual: string
+      sawSymbols: string
+      iFelt: string
+      theDream: string
+      lastThing: string
+    }
+  }
+  ms: {
+    newDreamEntry: string
+    dreamTitle: string
+    enterTitle: string
+    whereWereYou: string
+    locationPlaceholder: string
+    whoWasThere: string
+    peoplePlaceholder: string
+    timeOfDay: string
+    whatWereYouDoing: string
+    activityPlaceholder: string
+    anythingUnusual: string
+    yes: string
+    no: string
+    describeWhat: string
+    seeSymbols: string
+    symbolsPlaceholder: string
+    howDidYouFeel: string
+    morning: string
+    afternoon: string
+    night: string
+    unknown: string
+    happy: string
+    scared: string
+    confused: string
+    peaceful: string
+    anxious: string
+    excited: string
+    howDidDreamEnd: string
+    selectOption: string
+    abruptly: string
+    slowly: string
+    wokeUpSuddenly: string
+    fadedAway: string
+    lastThingBeforeWaking: string
+    lastThingPlaceholder: string
+    dreamSummary: string
+    saveDream: string
+    saveAndVisualize: string
+    summaryTemplates: {
+      wasAt: string
+      with: string
+      noOne: string
+      itWas: string
+      and: string
+      somethingUnusual: string
+      sawSymbols: string
+      iFelt: string
+      theDream: string
+      lastThing: string
+    }
+  }
+}
+
 export default function DreamCapture() {
   const router = useRouter()
+  const [language, setLanguage] = useState<'en' | 'ms'>('en')
   const [dream, setDream] = useState<DreamEntry>({
     id: "",
     title: `Dream ${new Date().toLocaleDateString()}`,
@@ -48,6 +156,38 @@ export default function DreamCapture() {
   })
 
   const [isEditing, setIsEditing] = useState(false)
+
+  useEffect(() => {
+    // Initial load
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
+    if (savedLanguage) {
+      setLanguage(savedLanguage)
+    }
+
+    // Set up storage event listener for changes from other windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Set up event listener for changes in the same window
+    const handleLanguageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('storage-local', handleLanguageChange as any)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('storage-local', handleLanguageChange as any)
+    }
+  }, [])
 
   useEffect(() => {
     // Generate a unique ID for the dream when the component mounts
@@ -97,10 +237,128 @@ export default function DreamCapture() {
     router.push(`/dream/${dream.id}`)
   }
 
-  const generateSummary = () => {
-    return `I was at ${dream.location} with ${dream.people || "no one"}. It was ${dream.timeOfDay.toLowerCase()} and ${dream.activity}. ${
-      dream.unusualEvents.occurred ? `Something unusual happened: ${dream.unusualEvents.description}.` : ""
-    } ${dream.symbols ? `I saw symbols like ${dream.symbols}.` : ""} I felt ${dream.emotion.toLowerCase()}. The dream ${dream.ending.toLowerCase()}.`
+  const translations = {
+    en: {
+      newDreamEntry: "New Dream Entry",
+      dreamTitle: "Dream Title",
+      enterTitle: "Enter a title for your dream...",
+      whereWereYou: "Where were you?",
+      locationPlaceholder: "Beach, childhood home, strange building...",
+      whoWasThere: "Who was there?",
+      peoplePlaceholder: "Friends, family, strangers, no one...",
+      timeOfDay: "Time of day",
+      whatWereYouDoing: "What were you doing?",
+      activityPlaceholder: "I was running, flying, talking to...",
+      anythingUnusual: "Did anything unusual happen?",
+      yes: "Yes",
+      no: "No",
+      describeWhat: "Describe what happened...",
+      seeSymbols: "Did you see any symbols?",
+      symbolsPlaceholder: "A key, a door, an animal...",
+      howDidYouFeel: "How did you feel?",
+      morning: "Morning",
+      afternoon: "Afternoon",
+      night: "Night",
+      unknown: "Unknown",
+      happy: "Happy",
+      scared: "Scared",
+      confused: "Confused",
+      peaceful: "Peaceful",
+      anxious: "Anxious",
+      excited: "Excited",
+      howDidDreamEnd: "How did the dream end?",
+      selectOption: "Select an option",
+      abruptly: "Abruptly",
+      slowly: "Slowly",
+      wokeUpSuddenly: "Woke Up Suddenly",
+      fadedAway: "Faded Away",
+      lastThingBeforeWaking: "Last thing before waking up?",
+      lastThingPlaceholder: "A sound, a thought, a feeling...",
+      dreamSummary: "Dream Summary",
+      saveDream: "Save Dream",
+      saveAndVisualize: "Save & Visualize Dream",
+      summaryTemplates: {
+        wasAt: "I was at",
+        with: "with",
+        noOne: "no one",
+        itWas: "It was",
+        and: "and",
+        somethingUnusual: "Something unusual happened:",
+        sawSymbols: "I saw symbols like",
+        iFelt: "I felt",
+        theDream: "The dream",
+        lastThing: "The last thing I remember was"
+      }
+    },
+    ms: {
+      newDreamEntry: "Entri Mimpi Baru",
+      dreamTitle: "Tajuk Mimpi",
+      enterTitle: "Masukkan tajuk untuk mimpi anda...",
+      whereWereYou: "Di mana anda berada?",
+      locationPlaceholder: "Pantai, rumah zaman kanak-kanak, bangunan pelik...",
+      whoWasThere: "Siapa yang ada di sana?",
+      peoplePlaceholder: "Kawan, keluarga, orang asing, tiada siapa...",
+      timeOfDay: "Masa hari",
+      whatWereYouDoing: "Apa yang anda lakukan?",
+      activityPlaceholder: "Saya berlari, terbang, bercakap dengan...",
+      anythingUnusual: "Adakah sesuatu yang luar biasa berlaku?",
+      yes: "Ya",
+      no: "Tidak",
+      describeWhat: "Terangkan apa yang berlaku...",
+      seeSymbols: "Adakah anda melihat sebarang simbol?",
+      symbolsPlaceholder: "Kunci, pintu, haiwan...",
+      howDidYouFeel: "Bagaimana perasaan anda?",
+      morning: "Pagi",
+      afternoon: "Tengah Hari",
+      night: "Malam",
+      unknown: "Tidak Pasti",
+      happy: "Gembira",
+      scared: "Takut",
+      confused: "Keliru",
+      peaceful: "Tenang",
+      anxious: "Cemas",
+      excited: "Teruja",
+      howDidDreamEnd: "Bagaimana mimpi ini berakhir?",
+      selectOption: "Pilih satu pilihan",
+      abruptly: "Secara Tiba-tiba",
+      slowly: "Secara Perlahan",
+      wokeUpSuddenly: "Terjaga Mengejut",
+      fadedAway: "Pudar Perlahan",
+      lastThingBeforeWaking: "Perkara terakhir sebelum terjaga?",
+      lastThingPlaceholder: "Bunyi, fikiran, perasaan...",
+      dreamSummary: "Ringkasan Mimpi",
+      saveDream: "Simpan Mimpi",
+      saveAndVisualize: "Simpan & Visualkan Mimpi",
+      summaryTemplates: {
+        wasAt: "Saya berada di",
+        with: "bersama",
+        noOne: "seorang diri",
+        itWas: "Ia adalah waktu",
+        and: "dan",
+        somethingUnusual: "Sesuatu yang luar biasa berlaku:",
+        sawSymbols: "Saya nampak simbol seperti",
+        iFelt: "Saya berasa",
+        theDream: "Mimpi itu",
+        lastThing: "Perkara terakhir yang saya ingat ialah"
+      }
+    }
+  } satisfies Record<'en' | 'ms', Record<string, string | Record<string, string>>>;
+
+  const generateSummary = (): string => {
+    const t = translations[language].summaryTemplates as Record<string, string>;
+    const timeOfDay = translations[language][dream.timeOfDay.toLowerCase()] as string;
+    const emotion = translations[language][dream.emotion.toLowerCase()] as string;
+    const ending = dream.ending ? (translations[language][dream.ending.toLowerCase()] as string) : '';
+
+    return `${t.wasAt} ${dream.location} ${t.with} ${dream.people || t.noOne}. ${t.itWas} ${timeOfDay} ${t.and} ${dream.activity}. ${
+      dream.unusualEvents.occurred ? `${t.somethingUnusual} ${dream.unusualEvents.description}.` : ""
+    } ${dream.symbols ? `${t.sawSymbols} ${dream.symbols}.` : ""} ${t.iFelt} ${emotion}. ${t.theDream} ${ending}${
+      dream.finalMoments ? `. ${t.lastThing} ${dream.finalMoments}.` : "."
+    }`
+  }
+
+  const getSummaryText = (): string => {
+    return dream.summary || generateSummary();
   }
 
   return (
@@ -111,8 +369,8 @@ export default function DreamCapture() {
           <Link href="/home" className="p-2">
             <ArrowLeft className="h-6 w-6" />
           </Link>
-          <h1 className="text-lg font-semibold">New Dream Entry</h1>
-          <div className="w-10"></div> {/* Empty div for spacing */}
+          <h1 className="text-lg font-semibold">{translations[language].newDreamEntry}</h1>
+          <div className="w-10"></div>
         </div>
       </header>
 
@@ -120,43 +378,43 @@ export default function DreamCapture() {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Title */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Dream Title</label>
+          <label className="block text-sm font-medium">{translations[language].dreamTitle}</label>
           <input
             type="text"
             value={dream.title}
             onChange={(e) => setDream({ ...dream, title: e.target.value })}
-            placeholder="Enter a title for your dream..."
+            placeholder={translations[language].enterTitle}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500"
           />
         </div>
 
         {/* Location */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Where were you?</label>
+          <label className="block text-sm font-medium">{translations[language].whereWereYou}</label>
           <input
             type="text"
             value={dream.location}
             onChange={(e) => setDream({ ...dream, location: e.target.value })}
-            placeholder="Beach, childhood home, strange building..."
+            placeholder={translations[language].locationPlaceholder}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500"
           />
         </div>
 
         {/* People */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Who was there?</label>
+          <label className="block text-sm font-medium">{translations[language].whoWasThere}</label>
           <input
             type="text"
             value={dream.people}
             onChange={(e) => setDream({ ...dream, people: e.target.value })}
-            placeholder="Friends, family, strangers, no one..."
+            placeholder={translations[language].peoplePlaceholder}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500"
           />
         </div>
 
         {/* Time of Day */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Time of day</label>
+          <label className="block text-sm font-medium">{translations[language].timeOfDay}</label>
           <div className="grid grid-cols-4 gap-2">
             {["Morning", "Afternoon", "Night", "Unknown"].map((time) => (
               <button
@@ -166,7 +424,7 @@ export default function DreamCapture() {
                   dream.timeOfDay === time ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
                 }`}
               >
-                {time}
+                {translations[language][time.toLowerCase() as keyof typeof translations['en']]}
               </button>
             ))}
           </div>
@@ -174,18 +432,18 @@ export default function DreamCapture() {
 
         {/* Activity */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">What were you doing?</label>
+          <label className="block text-sm font-medium">{translations[language].whatWereYouDoing}</label>
           <textarea
             value={dream.activity}
             onChange={(e) => setDream({ ...dream, activity: e.target.value })}
-            placeholder="I was running, flying, talking to..."
+            placeholder={translations[language].activityPlaceholder}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500 min-h-[100px]"
           />
         </div>
 
         {/* Unusual Events */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Did anything unusual happen?</label>
+          <label className="block text-sm font-medium">{translations[language].anythingUnusual}</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setDream({ ...dream, unusualEvents: { ...dream.unusualEvents, occurred: true } })}
@@ -193,7 +451,7 @@ export default function DreamCapture() {
                 dream.unusualEvents.occurred ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
               }`}
             >
-              Yes
+              {translations[language].yes}
             </button>
             <button
               onClick={() => setDream({ ...dream, unusualEvents: { occurred: false, description: "" } })}
@@ -201,7 +459,7 @@ export default function DreamCapture() {
                 !dream.unusualEvents.occurred ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
               }`}
             >
-              No
+              {translations[language].no}
             </button>
           </div>
           {dream.unusualEvents.occurred && (
@@ -213,7 +471,7 @@ export default function DreamCapture() {
                   unusualEvents: { ...dream.unusualEvents, description: e.target.value },
                 })
               }
-              placeholder="Describe what happened..."
+              placeholder={translations[language].describeWhat}
               className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500 mt-2"
             />
           )}
@@ -221,19 +479,19 @@ export default function DreamCapture() {
 
         {/* Symbols */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Did you see any symbols?</label>
+          <label className="block text-sm font-medium">{translations[language].seeSymbols}</label>
           <input
             type="text"
             value={dream.symbols}
             onChange={(e) => setDream({ ...dream, symbols: e.target.value })}
-            placeholder="A key, a door, an animal..."
+            placeholder={translations[language].symbolsPlaceholder}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500"
           />
         </div>
 
         {/* Emotions */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">How did you feel?</label>
+          <label className="block text-sm font-medium">{translations[language].howDidYouFeel}</label>
           <div className="grid grid-cols-3 gap-2">
             {["Happy", "Scared", "Confused", "Peaceful", "Anxious", "Excited"].map((emotion) => (
               <button
@@ -243,7 +501,7 @@ export default function DreamCapture() {
                   dream.emotion === emotion ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
                 }`}
               >
-                {emotion}
+                {translations[language][emotion.toLowerCase() as keyof typeof translations['en']]}
               </button>
             ))}
           </div>
@@ -251,28 +509,28 @@ export default function DreamCapture() {
 
         {/* Ending */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">How did the dream end?</label>
+          <label className="block text-sm font-medium">{translations[language].howDidDreamEnd}</label>
           <select
             value={dream.ending}
             onChange={(e) => setDream({ ...dream, ending: e.target.value })}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800"
           >
-            <option value="">Select an option</option>
-            <option value="Abruptly">Abruptly</option>
-            <option value="Slowly">Slowly</option>
-            <option value="Woke Up Suddenly">Woke Up Suddenly</option>
-            <option value="Faded Away">Faded Away</option>
+            <option value="">{translations[language].selectOption}</option>
+            <option value="Abruptly">{translations[language].abruptly}</option>
+            <option value="Slowly">{translations[language].slowly}</option>
+            <option value="Woke Up Suddenly">{translations[language].wokeUpSuddenly}</option>
+            <option value="Faded Away">{translations[language].fadedAway}</option>
           </select>
         </div>
 
         {/* Final Moments */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Last thing before waking up?</label>
+          <label className="block text-sm font-medium">{translations[language].lastThingBeforeWaking}</label>
           <input
             type="text"
             value={dream.finalMoments}
             onChange={(e) => setDream({ ...dream, finalMoments: e.target.value })}
-            placeholder="A sound, a thought, a feeling..."
+            placeholder={translations[language].lastThingPlaceholder}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500"
           />
         </div>
@@ -280,19 +538,19 @@ export default function DreamCapture() {
         {/* Dream Summary */}
         <div className="space-y-2 border-t border-zinc-800 pt-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium">Dream Summary</h2>
+            <h2 className="text-lg font-medium">{translations[language].dreamSummary}</h2>
             <button onClick={() => setIsEditing(!isEditing)} className="p-2 rounded-lg hover:bg-zinc-900">
               <Edit2Icon className="h-5 w-5" />
             </button>
           </div>
           {isEditing ? (
             <textarea
-              value={dream.summary || generateSummary()}
+              value={getSummaryText()}
               onChange={(e) => setDream({ ...dream, summary: e.target.value })}
               className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500 min-h-[100px]"
             />
           ) : (
-            <p className="text-zinc-400">{dream.summary || generateSummary()}</p>
+            <p className="text-zinc-400">{getSummaryText()}</p>
           )}
         </div>
 
@@ -303,7 +561,7 @@ export default function DreamCapture() {
             className="w-full py-3 flex items-center justify-center gap-2"
           >
             <Save className="h-5 w-5" />
-            Save Dream
+            {translations[language].saveDream}
           </GradientButton>
           
           <GradientButton 
@@ -311,7 +569,7 @@ export default function DreamCapture() {
             className="w-full py-3 flex items-center justify-center gap-2 gradient-button-variant"
           >
             <Sparkles className="h-5 w-5" />
-            Save & Visualize Dream
+            {translations[language].saveAndVisualize}
           </GradientButton>
         </div>
       </main>

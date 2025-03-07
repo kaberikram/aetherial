@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Meteors } from "./meteors";
 import { SmileIcon, FrownIcon, SearchIcon, MapPinIcon, UsersIcon } from "lucide-react";
@@ -16,6 +16,27 @@ interface MeteorCardProps {
   className?: string;
 }
 
+const emotionTranslations = {
+  en: {
+    happy: "Happy",
+    excited: "Excited",
+    scared: "Scared",
+    anxious: "Anxious",
+    confused: "Confused",
+    peaceful: "Peaceful",
+    tapToView: "Tap to view details"
+  },
+  ms: {
+    happy: "Gembira",
+    excited: "Teruja",
+    scared: "Takut",
+    anxious: "Cemas",
+    confused: "Keliru",
+    peaceful: "Tenang",
+    tapToView: "Ketuk untuk lihat butiran"
+  }
+};
+
 export function MeteorCard({ 
   title, 
   date, 
@@ -25,6 +46,40 @@ export function MeteorCard({
   people,
   className 
 }: MeteorCardProps) {
+  const [language, setLanguage] = useState<'en' | 'ms'>('en');
+
+  useEffect(() => {
+    // Initial load
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null;
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
+    }
+
+    // Set up storage event listener for changes from other windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms');
+      }
+    };
+
+    // Set up event listener for changes in the same window
+    const handleLanguageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms');
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage-local', handleLanguageChange as any);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage-local', handleLanguageChange as any);
+    };
+  }, []);
+
   const getEmotionIcon = (emotion: Emotion) => {
     switch (emotion) {
       case "happy":
@@ -80,7 +135,7 @@ export function MeteorCard({
       <div className="flex flex-wrap items-center gap-3 mt-2">
         <div className="flex items-center gap-1">
           {getEmotionIcon(emotion)}
-          <span className="text-sm capitalize">{emotion}</span>
+          <span className="text-sm capitalize">{emotionTranslations[language][emotion]}</span>
         </div>
         
         {location && (
@@ -101,7 +156,7 @@ export function MeteorCard({
       <p className="mt-3 text-sm text-zinc-300 line-clamp-3 flex-grow">{excerpt}</p>
       
       <div className="mt-4 text-xs text-zinc-500 flex justify-end">
-        <span>Tap to view details</span>
+        <span>{emotionTranslations[language].tapToView}</span>
       </div>
 
       {/* Meteor effect */}

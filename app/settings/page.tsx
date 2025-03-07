@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Trash2, AlertTriangle, RefreshCw, InfoIcon } from "lucide-react"
+import { ArrowLeft, Trash2, AlertTriangle, RefreshCw, InfoIcon, Globe2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
@@ -18,14 +18,78 @@ export default function SettingsPage() {
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  const [language, setLanguage] = useState<'en' | 'ms'>('en')
+
+  // Load saved language
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
+    if (savedLanguage) {
+      setLanguage(savedLanguage)
+    }
+  }, [])
+
+  const translations = {
+    en: {
+      settings: "Settings",
+      dataPrivacy: "Data Privacy",
+      dataPrivacyDesc: "All your dream data is stored locally on your device. Nothing is sent to any server. Your privacy is important to us.",
+      dataManagement: "Data Management",
+      clearJournal: "Clear Dream Journal",
+      clearJournalDesc: "Delete all your dream entries. This action cannot be undone.",
+      clearAll: "Clear All",
+      confirmClear: "Are you sure you want to delete all dream entries? This action cannot be undone.",
+      clearing: "Clearing...",
+      yesClearAll: "Yes, Clear All",
+      cancel: "Cancel",
+      resetSample: "Reset with Sample Dreams",
+      resetSampleDesc: "Replace your current dreams with a set of 6 sample dreams.",
+      resetting: "Resetting...",
+      resetDreams: "Reset Dreams",
+      exportData: "Export Data",
+      exportDataDesc: "Download all your dream journal entries as a JSON file.",
+      exportDreams: "Export Dreams",
+      about: "About",
+      version: "Version",
+      creator: "Creator",
+      language: "Language",
+      languageDesc: "Choose your preferred language",
+      english: "English",
+      malay: "Bahasa Melayu"
+    },
+    ms: {
+      settings: "Tetapan",
+      dataPrivacy: "Privasi Data",
+      dataPrivacyDesc: "Semua data mimpi anda disimpan secara lokal di peranti anda. Tiada data dihantar ke mana-mana pelayan. Privasi anda penting bagi kami.",
+      dataManagement: "Pengurusan Data",
+      clearJournal: "Kosongkan Jurnal Mimpi",
+      clearJournalDesc: "Padamkan semua entri mimpi anda. Tindakan ini tidak boleh dibatalkan.",
+      clearAll: "Kosongkan Semua",
+      confirmClear: "Adakah anda pasti mahu memadamkan semua entri mimpi? Tindakan ini tidak boleh dibatalkan.",
+      clearing: "Mengosongkan...",
+      yesClearAll: "Ya, Kosongkan Semua",
+      cancel: "Batal",
+      resetSample: "Muat Semula dengan Mimpi Contoh",
+      resetSampleDesc: "Gantikan mimpi semasa anda dengan set 6 mimpi contoh.",
+      resetting: "Memuat semula...",
+      resetDreams: "Muat Semula Mimpi",
+      exportData: "Eksport Data",
+      exportDataDesc: "Muat turun semua entri jurnal mimpi anda sebagai fail JSON.",
+      exportDreams: "Eksport Mimpi",
+      about: "Tentang",
+      version: "Versi",
+      creator: "Pencipta",
+      language: "Bahasa",
+      languageDesc: "Pilih bahasa pilihan anda",
+      english: "English",
+      malay: "Bahasa Melayu"
+    }
+  }
 
   // Apply settings-page class to document body
   useEffect(() => {
-    // Add the class to hide scrollbars
     document.body.classList.add('settings-page');
     document.documentElement.classList.add('settings-page');
     
-    // Clean up function to remove the class when component unmounts
     return () => {
       document.body.classList.remove('settings-page');
       document.documentElement.classList.remove('settings-page');
@@ -34,33 +98,46 @@ export default function SettingsPage() {
 
   const clearAllDreams = () => {
     setIsClearing(true)
-    
-    // Simulate a delay for better UX
     setTimeout(() => {
       localStorage.setItem("dreams", "[]")
       setShowConfirmation(false)
       setIsClearing(false)
-      
-      // Show toast notification
-      toast.success("Dream journal cleared", {
-        description: "All dream entries have been deleted"
+      toast.success(language === 'en' ? "Dream journal cleared" : "Jurnal mimpi dikosongkan", {
+        description: language === 'en' ? "All dream entries have been deleted" : "Semua entri mimpi telah dipadamkan"
       })
     }, 1000)
   }
 
   const resetWithSampleDreams = () => {
     setIsResetting(true)
-    
-    // Simulate a delay for better UX
     setTimeout(() => {
       forceResetWithAllSampleDreams()
       setIsResetting(false)
-      
-      // Show toast notification
-      toast.success("Sample dreams added", {
-        description: "Your dream journal has been reset with sample dreams"
+      toast.success(language === 'en' ? "Sample dreams added" : "Mimpi contoh ditambah", {
+        description: language === 'en' ? "Your dream journal has been reset with sample dreams" : "Jurnal mimpi anda telah dimuat semula dengan mimpi contoh"
       })
     }, 1000)
+  }
+
+  const handleLanguageChange = (newLanguage: 'en' | 'ms') => {
+    setLanguage(newLanguage)
+    localStorage.setItem('language', newLanguage)
+    
+    // Dispatch storage event for other windows
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'language',
+      newValue: newLanguage,
+      storageArea: localStorage
+    }))
+    
+    // Dispatch custom event for same window
+    window.dispatchEvent(new StorageEvent('storage-local', {
+      key: 'language',
+      newValue: newLanguage,
+      storageArea: localStorage
+    }))
+    
+    toast.success(newLanguage === 'en' ? "Language changed to English" : "Bahasa ditukar ke Bahasa Melayu")
   }
 
   return (
@@ -70,12 +147,41 @@ export default function SettingsPage() {
           <Link href="/home" className="p-2 hover:bg-zinc-800/50 rounded-lg transition-colors">
             <ArrowLeft className="h-6 w-6" />
           </Link>
-          <h1 className="text-lg font-semibold ml-2">Settings</h1>
+          <h1 className="text-lg font-semibold ml-2">{translations[language].settings}</h1>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="space-y-8">
+          {/* Language Selection */}
+          <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
+            <div className="flex items-start gap-3">
+              <div className="mt-1 text-blue-400">
+                <Globe2 className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold mb-2">{translations[language].language}</h2>
+                <p className="text-zinc-400 mb-4">{translations[language].languageDesc}</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant={language === 'en' ? "default" : "outline"}
+                    onClick={() => handleLanguageChange('en')}
+                    className="h-8 px-3 text-sm"
+                  >
+                    {translations[language].english}
+                  </Button>
+                  <Button
+                    variant={language === 'ms' ? "default" : "outline"}
+                    onClick={() => handleLanguageChange('ms')}
+                    className="h-8 px-3 text-sm"
+                  >
+                    {translations[language].malay}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Data Privacy Notice */}
           <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
             <div className="flex items-start gap-3">
@@ -83,10 +189,9 @@ export default function SettingsPage() {
                 <InfoIcon className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold mb-2">Data Privacy</h2>
+                <h2 className="text-xl font-semibold mb-2">{translations[language].dataPrivacy}</h2>
                 <p className="text-zinc-400">
-                  All your dream data is stored locally on your device. Nothing is sent to any server.
-                  Your privacy is important to us.
+                  {translations[language].dataPrivacyDesc}
                 </p>
               </div>
             </div>
@@ -94,22 +199,22 @@ export default function SettingsPage() {
           
           {/* Data Management Section */}
           <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
-            <h2 className="text-xl font-semibold mb-4">Data Management</h2>
+            <h2 className="text-xl font-semibold mb-4">{translations[language].dataManagement}</h2>
             
             <div className="space-y-6">
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col gap-3 mb-2">
                   <div>
-                    <h3 className="font-medium">Clear Dream Journal</h3>
-                    <p className="text-sm text-zinc-400">Delete all your dream entries. This action cannot be undone.</p>
+                    <h3 className="font-medium">{translations[language].clearJournal}</h3>
+                    <p className="text-sm text-zinc-400">{translations[language].clearJournalDesc}</p>
                   </div>
                   <Button 
                     variant="destructive"
                     onClick={() => setShowConfirmation(true)}
-                    className="shrink-0"
+                    className="shrink-0 w-full md:w-auto h-9 px-3 text-sm font-medium"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Clear All
+                    {translations[language].clearAll}
                   </Button>
                 </div>
                 
@@ -119,7 +224,7 @@ export default function SettingsPage() {
                       <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm text-red-200 mb-3">
-                          Are you sure you want to delete all dream entries? This action cannot be undone.
+                          {translations[language].confirmClear}
                         </p>
                         <div className="flex gap-2">
                           <Button 
@@ -131,10 +236,10 @@ export default function SettingsPage() {
                             {isClearing ? (
                               <>
                                 <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
-                                Clearing...
+                                {translations[language].clearing}
                               </>
                             ) : (
-                              "Yes, Clear All"
+                              translations[language].yesClearAll
                             )}
                           </Button>
                           <Button 
@@ -143,7 +248,7 @@ export default function SettingsPage() {
                             onClick={() => setShowConfirmation(false)}
                             disabled={isClearing}
                           >
-                            Cancel
+                            {translations[language].cancel}
                           </Button>
                         </div>
                       </div>
@@ -153,26 +258,26 @@ export default function SettingsPage() {
               </div>
               
               <div className="pt-4 border-t border-zinc-800/50">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col gap-3 mb-2">
                   <div>
-                    <h3 className="font-medium">Reset with Sample Dreams</h3>
-                    <p className="text-sm text-zinc-400">Replace your current dreams with a set of 6 sample dreams.</p>
+                    <h3 className="font-medium">{translations[language].resetSample}</h3>
+                    <p className="text-sm text-zinc-400">{translations[language].resetSampleDesc}</p>
                   </div>
                   <Button 
                     variant="outline"
                     onClick={resetWithSampleDreams}
                     disabled={isResetting}
-                    className="shrink-0"
+                    className="shrink-0 w-full md:w-auto h-9 px-3 text-sm font-medium"
                   >
                     {isResetting ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Resetting...
+                        {translations[language].resetting}
                       </>
                     ) : (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2" />
-                        Reset Dreams
+                        {translations[language].resetDreams}
                       </>
                     )}
                   </Button>
@@ -180,10 +285,10 @@ export default function SettingsPage() {
               </div>
               
               <div className="pt-4 border-t border-zinc-800/50">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-col gap-3 mb-2">
                   <div>
-                    <h3 className="font-medium">Export Data</h3>
-                    <p className="text-sm text-zinc-400">Download all your dream journal entries as a JSON file.</p>
+                    <h3 className="font-medium">{translations[language].exportData}</h3>
+                    <p className="text-sm text-zinc-400">{translations[language].exportDataDesc}</p>
                   </div>
                   <Button 
                     variant="outline"
@@ -191,17 +296,15 @@ export default function SettingsPage() {
                       const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
                       const dataStr = JSON.stringify(dreams, null, 2)
                       const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
-                      
                       const exportFileDefaultName = `dream-journal-export-${new Date().toISOString().split('T')[0]}.json`
-                      
                       const linkElement = document.createElement('a')
                       linkElement.setAttribute('href', dataUri)
                       linkElement.setAttribute('download', exportFileDefaultName)
                       linkElement.click()
                     }}
-                    className="shrink-0"
+                    className="shrink-0 w-full md:w-auto h-9 px-3 text-sm font-medium"
                   >
-                    Export Dreams
+                    {translations[language].exportDreams}
                   </Button>
                 </div>
               </div>
@@ -210,16 +313,16 @@ export default function SettingsPage() {
           
           {/* About Section */}
           <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
-            <h2 className="text-xl font-semibold mb-4">About</h2>
+            <h2 className="text-xl font-semibold mb-4">{translations[language].about}</h2>
             
             <div className="space-y-4">
               <div>
                 <h3 className="font-medium">Aetherial - Dream Journal</h3>
-                <p className="text-sm text-zinc-400">Version 1.0.0</p>
+                <p className="text-sm text-zinc-400">{translations[language].version} 1.0.0</p>
               </div>
               
               <div className="pt-4 border-t border-zinc-800/50">
-                <h3 className="font-medium">Creator</h3>
+                <h3 className="font-medium">{translations[language].creator}</h3>
                 <p className="text-zinc-400 mt-1">Ikram Hakim</p>
                 <div className="mt-2 space-y-1">
                   <div className="flex items-center gap-2">

@@ -11,6 +11,49 @@ interface DreamImageGeneratorProps {
   summary: string
 }
 
+const translations = {
+  en: {
+    generateDreamVisualization: "Generate Dream Visualization",
+    createAiVisualization: "Create an AI-generated visualization based on your dream description.",
+    generationsRemaining: "Generations remaining today:",
+    supportFeature: "Support this feature",
+    dreamVisualizationsPowered: "Dream visualizations are powered by AI that costs real money to run. Your donation helps keep this feature available for everyone!",
+    supportThisFeature: "Support this feature",
+    generating: "Generating...",
+    generateVisualization: "Generate Visualization",
+    limitReached: "You've reached the daily limit of {limit} image generations. Please try again tomorrow.",
+    generationLimitReached: "Generation limit reached",
+    dreamImageGenerated: "Dream image generated successfully",
+    imageFailed: "Image generation failed",
+    downloadImage: "Download Image",
+    regenerateImage: "Regenerate Image",
+    showDebugInfo: "Show Debug Info",
+    hideDebugInfo: "Hide Debug Info",
+    toggleZoom: "Toggle Zoom",
+    debugInformation: "Debug Information"
+  },
+  ms: {
+    generateDreamVisualization: "Jana Visualisasi Mimpi",
+    createAiVisualization: "Cipta visualisasi yang dijana AI berdasarkan penerangan mimpi anda.",
+    generationsRemaining: "Penjanaan yang tinggal hari ini:",
+    supportFeature: "Sokong ciri ini",
+    dreamVisualizationsPowered: "Visualisasi mimpi dikuasakan oleh AI yang memerlukan kos sebenar untuk dijalankan. Sumbangan anda membantu mengekalkan ciri ini untuk semua orang!",
+    supportThisFeature: "Sokong ciri ini",
+    generating: "Menjana...",
+    generateVisualization: "Jana Visualisasi",
+    limitReached: "Anda telah mencapai had harian {limit} penjanaan imej. Sila cuba lagi esok.",
+    generationLimitReached: "Had penjanaan dicapai",
+    dreamImageGenerated: "Imej mimpi berjaya dijana",
+    imageFailed: "Penjanaan imej gagal",
+    downloadImage: "Muat Turun Imej",
+    regenerateImage: "Jana Semula Imej",
+    showDebugInfo: "Tunjuk Maklumat Debug",
+    hideDebugInfo: "Sembunyi Maklumat Debug",
+    toggleZoom: "Togol Zum",
+    debugInformation: "Maklumat Debug"
+  }
+};
+
 // Simple rate limiting constants
 const MAX_GENERATIONS_PER_DAY = 5
 const RATE_LIMIT_STORAGE_KEY = "image_generation_usage"
@@ -61,21 +104,53 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   const [isZoomed, setIsZoomed] = useState(false)
   const [remainingGenerations, setRemainingGenerations] = useState<number>(MAX_GENERATIONS_PER_DAY)
   const [showDonateInfo, setShowDonateInfo] = useState(false)
+  const [language, setLanguage] = useState<'en' | 'ms'>('en')
 
-  // Check rate limits
+  // Check rate limits and set language
   useEffect(() => {
     // Check rate limits
     const { remaining } = checkRateLimit()
     setRemainingGenerations(remaining)
+
+    // Set language from localStorage
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
+    if (savedLanguage) {
+      setLanguage(savedLanguage)
+    }
+
+    // Set up storage event listener for changes from other windows
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Set up event listener for changes in the same window
+    const handleLanguageChange = (e: StorageEvent) => {
+      if (e.key === 'language') {
+        setLanguage(e.newValue as 'en' | 'ms')
+      }
+    }
+
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('storage-local', handleLanguageChange as any)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('storage-local', handleLanguageChange as any)
+    }
   }, [])
 
   const generateImage = async () => {
     // Check rate limit
     const { allowed, remaining } = checkRateLimit()
     if (!allowed) {
-      setError(`You've reached the daily limit of ${MAX_GENERATIONS_PER_DAY} image generations. Please try again tomorrow.`)
-      toast.error("Generation limit reached", {
-        description: `You've reached the daily limit of ${MAX_GENERATIONS_PER_DAY} image generations. Please try again tomorrow.`
+      const errorMessage = translations[language].limitReached.replace('{limit}', MAX_GENERATIONS_PER_DAY.toString())
+      setError(errorMessage)
+      toast.error(translations[language].generationLimitReached, {
+        description: errorMessage
       })
       return
     }
@@ -99,7 +174,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
         incrementUsage()
         setRemainingGenerations(remaining - 1)
         
-        toast.success("Dream image generated successfully")
+        toast.success(translations[language].dreamImageGenerated)
       }
     } catch (error: any) {
       console.error("Error generating image:", error)
@@ -149,7 +224,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
           description: "The image generation request timed out. Please try again later."
         })
       } else {
-        toast.error("Image generation failed", {
+        toast.error(translations[language].imageFailed, {
           description: errorMessage
         })
       }
@@ -190,14 +265,14 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
     <div className="space-y-4">
       {!generatedImage && !isGenerating && (
         <div className="bg-zinc-800/30 rounded-lg border border-zinc-700/30 p-6 text-center space-y-4">
-          <h3 className="text-lg font-medium">Generate Dream Visualization</h3>
+          <h3 className="text-lg font-medium">{translations[language].generateDreamVisualization}</h3>
           <p className="text-zinc-400 text-sm">
-            Create an AI-generated visualization based on your dream description.
+            {translations[language].createAiVisualization}
           </p>
           
           <div className="text-sm text-zinc-400 mb-4">
             <div className="flex items-center justify-center gap-1">
-              <span>Generations remaining today: </span>
+              <span>{translations[language].generationsRemaining} </span>
               <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {remainingGenerations}
               </span>
@@ -210,7 +285,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
                   className="underline hover:text-amber-200 transition-colors"
                   onClick={() => setShowDonateInfo(!showDonateInfo)}
                 >
-                  Support this feature
+                  {translations[language].supportFeature}
                 </button>
               </div>
             )}
@@ -219,14 +294,13 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
           {showDonateInfo && (
             <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20 mb-2">
               <p className="text-zinc-300 mb-2">
-                Dream visualizations are powered by AI that costs real money to run.
-                Your donation helps keep this feature available for everyone!
+                {translations[language].dreamVisualizationsPowered}
               </p>
               <Button 
                 onClick={handleDonateClick}
                 className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
               >
-                💳 Support this feature
+                💳 {translations[language].supportThisFeature}
               </Button>
             </div>
           )}
@@ -239,176 +313,106 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
             {isGenerating ? (
               <div className="flex items-center justify-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Generating...
+                {translations[language].generating}
               </div>
             ) : (
-              "Generate Visualization"
+              translations[language].generateVisualization
             )}
           </GradientButton>
           
           {remainingGenerations === 0 && (
             <div className="mt-2 bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20">
-              <p className="text-zinc-300 mb-2">
-                You've reached your daily limit of {MAX_GENERATIONS_PER_DAY} image generations.
-              </p>
-              <p className="text-zinc-400 mb-3 text-xs">
-                This limit helps us manage costs. Your support helps keep this feature available!
-              </p>
-              <Button 
-                onClick={handleDonateClick}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
-              >
-                💳 Support this feature
-              </Button>
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-zinc-300 text-left">
+                  {translations[language].limitReached.replace('{limit}', MAX_GENERATIONS_PER_DAY.toString())}
+                </p>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Only show this section when there's an image or we're generating one */}
-      {(generatedImage || isGenerating) && (
-        <div className="w-full bg-zinc-900/50 rounded-lg border border-zinc-800/50 overflow-hidden">
-          {generatedImage ? (
-            <div className="relative">
-              {/* Image container with zoom functionality */}
-              <div 
-                className={`relative overflow-hidden transition-all duration-300 ${
-                  isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
-                }`}
-                onClick={toggleZoom}
-              >
-                <img 
-                  src={generatedImage} 
-                  alt="AI generated visualization of the dream" 
-                  className={`w-full h-auto transition-all duration-300 ${
-                    isZoomed ? 'scale-150' : 'scale-100'
-                  }`}
-                />
-              </div>
-              
-              {/* Controls overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={toggleZoom}
-                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
-                    >
-                      {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
-                    </Button>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={downloadImage}
-                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={toggleDebugInfo}
-                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
-                    >
-                      <Info className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={generateImage}
-                      disabled={isGenerating || remainingGenerations <= 0}
-                      className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
-                    >
-                      {isGenerating ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Regenerate
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Debug info panel */}
-              {showDebug && debugInfo && (
-                <div className="mt-4 p-4 bg-black/50 border border-zinc-800 rounded-md text-xs font-mono overflow-x-auto">
-                  <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-                </div>
-              )}
-            </div>
-          ) : isGenerating ? (
-            <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
-              <div className="flex flex-col items-center">
-                <div className="relative w-16 h-16 mb-4">
-                  <div className="absolute inset-0 rounded-full border-t-2 border-blue-500 animate-spin"></div>
-                  <div className="absolute inset-2 rounded-full border-t-2 border-purple-500 animate-spin-slow"></div>
-                </div>
-                <h3 className="text-lg font-medium mb-2">Generating Dream Image</h3>
-                <p className="text-zinc-400 text-sm mb-1">This may take a moment...</p>
-                <p className="text-zinc-500 text-xs">Creating a unique visualization based on your dream</p>
-              </div>
-            </div>
-          ) : error ? (
-            <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/10 text-red-500 mb-4">
-                  <AlertCircle className="h-6 w-6" />
-                </div>
-                <h3 className="text-lg font-medium mb-2 text-red-400">Generation Failed</h3>
-                <p className="text-zinc-400 mb-4">{error}</p>
-                
-                {remainingGenerations > 0 && (
-                  <Button 
-                    variant="outline" 
-                    onClick={generateImage}
-                    disabled={isGenerating}
-                  >
-                    Try Again
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* Add donate button to error state when API credits are depleted */}
-      {error && typeof error === 'string' && error.includes("credit") && (
-        <div className="mt-4 bg-zinc-800/50 rounded-lg p-4 text-sm border border-amber-500/20">
-          <p className="text-zinc-300 mb-2">
-            It looks like our image generation service has reached its capacity.
-          </p>
-          <p className="text-zinc-400 mb-3 text-xs">
-            Your donation will help us increase capacity and keep this feature available!
-          </p>
-          <Button 
-            onClick={handleDonateClick}
-            className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
-          >
-            💳 Support this feature
-          </Button>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium">Error</p>
-              <p>{error}</p>
+      {/* Rest of the component with translations */}
+      {generatedImage && (
+        <div className="space-y-4">
+          <div className={`relative overflow-hidden rounded-lg border border-zinc-700/50 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}>
+            <div 
+              className={`transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
+              onClick={toggleZoom}
+            >
+              <img 
+                src={generatedImage} 
+                alt="Generated dream visualization" 
+                className="w-full h-auto"
+              />
             </div>
           </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={downloadImage}
+              className="flex items-center gap-1"
+            >
+              <Download className="h-4 w-4" />
+              {translations[language].downloadImage}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={generateImage}
+              disabled={isGenerating || remainingGenerations <= 0}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              {isGenerating ? translations[language].generating : translations[language].regenerateImage}
+            </Button>
+            
+            {debugInfo && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={toggleDebugInfo}
+                className="flex items-center gap-1"
+              >
+                <Info className="h-4 w-4" />
+                {showDebug ? translations[language].hideDebugInfo : translations[language].showDebugInfo}
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={toggleZoom}
+              className="flex items-center gap-1"
+            >
+              {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
+              {translations[language].toggleZoom}
+            </Button>
+          </div>
+          
+          {showDebug && debugInfo && (
+            <div className="mt-4 p-4 bg-zinc-900 rounded-lg border border-zinc-800 overflow-x-auto">
+              <h4 className="text-sm font-medium mb-2">{translations[language].debugInformation}</h4>
+              <pre className="text-xs text-zinc-400">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </div>
+          )}
+          
+          {error && (
+            <div className="mt-4 p-4 bg-red-900/20 rounded-lg border border-red-800/30">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-red-300 text-sm">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
