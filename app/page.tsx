@@ -29,15 +29,10 @@ export default function LandingPage() {
             <p className="text-lg md:text-xl text-zinc-400 mb-8">
               A beautiful and intuitive dream journal that helps you record, explore, and understand your dreams.
             </p>
-            <div className="flex flex-col items-center sm:flex-row sm:justify-center gap-4">
-              <Link href="/signup" className="w-full sm:w-auto">
+            <div className="flex justify-center">
+              <Link href="/home" className="w-full sm:w-auto">
                 <GradientButton className="w-full px-8 py-3 text-lg flex items-center justify-center gap-2">
-                  Start Journaling <ArrowRight className="h-5 w-5" />
-                </GradientButton>
-              </Link>
-              <Link href="/login" className="w-full sm:w-auto">
-                <GradientButton className="w-full px-8 py-3 text-lg gradient-button-variant flex items-center justify-center gap-2">
-                  Sign In <Sparkles className="h-5 w-5" />
+                  Start Exploring <ArrowRight className="h-5 w-5" />
                 </GradientButton>
               </Link>
             </div>
@@ -128,11 +123,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Start Your Dream Journey?</h2>
           <p className="text-lg text-zinc-400 mb-8 max-w-2xl mx-auto">
-            Join thousands of dreamers who are already discovering new insights about themselves through dream journaling.
+            Explore our dream journal and visualization tools to discover new insights about yourself.
           </p>
-          <Link href="/signup">
+          <Link href="/home">
             <GradientButton className="px-8 py-3 text-lg">
-              Create Your Account
+              Start Exploring
             </GradientButton>
           </Link>
         </div>

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Loader2, RefreshCw, Info, ZoomIn, ZoomOut, Download, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
 
 interface DreamImageGeneratorProps {
   summary: string
@@ -60,38 +59,17 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   const [showDebug, setShowDebug] = useState(false)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [isZoomed, setIsZoomed] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [remainingGenerations, setRemainingGenerations] = useState<number>(MAX_GENERATIONS_PER_DAY)
   const [showDonateInfo, setShowDonateInfo] = useState(false)
 
-  // Check authentication and rate limits
+  // Check rate limits
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        setIsAuthenticated(!!user)
-      } catch (error) {
-        console.error("Error checking auth status:", error)
-      }
-    }
-    
-    checkAuth()
-    
     // Check rate limits
     const { remaining } = checkRateLimit()
     setRemainingGenerations(remaining)
   }, [])
 
   const generateImage = async () => {
-    if (!isAuthenticated) {
-      setError("Please sign in to generate dream images")
-      toast.error("Authentication required", {
-        description: "Please sign in to generate dream images"
-      })
-      return
-    }
-    
     // Check rate limit
     const { allowed, remaining } = checkRateLimit()
     if (!allowed) {
@@ -197,32 +175,26 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
             Create an AI-generated visualization based on your dream description.
           </p>
           
-          {!isAuthenticated ? (
-            <div className="text-sm text-amber-400 mb-4">
-              Please sign in to generate dream images
+          <div className="text-sm text-zinc-400 mb-4">
+            <div className="flex items-center justify-center gap-1">
+              <span>Generations remaining today: </span>
+              <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {remainingGenerations}
+              </span>
+              <span>/{MAX_GENERATIONS_PER_DAY}</span>
             </div>
-          ) : (
-            <div className="text-sm text-zinc-400 mb-4">
-              <div className="flex items-center justify-center gap-1">
-                <span>Generations remaining today: </span>
-                <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {remainingGenerations}
-                </span>
-                <span>/{MAX_GENERATIONS_PER_DAY}</span>
+            
+            {remainingGenerations <= 2 && (
+              <div className="mt-2 text-xs text-amber-300">
+                <button 
+                  className="underline hover:text-amber-200 transition-colors"
+                  onClick={() => setShowDonateInfo(!showDonateInfo)}
+                >
+                  Support this feature
+                </button>
               </div>
-              
-              {remainingGenerations <= 2 && (
-                <div className="mt-2 text-xs text-amber-300">
-                  <button 
-                    className="underline hover:text-amber-200 transition-colors"
-                    onClick={() => setShowDonateInfo(!showDonateInfo)}
-                  >
-                    Support this feature
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
           
           {showDonateInfo && (
             <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20 mb-2">
@@ -241,7 +213,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
           
           <GradientButton
             onClick={generateImage}
-            disabled={isGenerating || !isAuthenticated || remainingGenerations <= 0}
+            disabled={isGenerating || remainingGenerations <= 0}
             className="w-full"
           >
             {isGenerating ? (
@@ -331,7 +303,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
                       variant="ghost" 
                       size="sm" 
                       onClick={generateImage}
-                      disabled={isGenerating || !isAuthenticated || remainingGenerations <= 0}
+                      disabled={isGenerating || remainingGenerations <= 0}
                       className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
                     >
                       {isGenerating ? (
@@ -375,7 +347,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
                 <h3 className="text-lg font-medium mb-2 text-red-400">Generation Failed</h3>
                 <p className="text-zinc-400 mb-4">{error}</p>
                 
-                {isAuthenticated && remainingGenerations > 0 && (
+                {remainingGenerations > 0 && (
                   <Button 
                     variant="outline" 
                     onClick={generateImage}

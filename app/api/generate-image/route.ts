@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import axios from "axios"
 import FormData from "form-data"
-import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
 
 export async function POST(request: Request) {
   try {
@@ -14,29 +12,6 @@ export async function POST(request: Request) {
           debug: { missingApiKey: true }
         },
         { status: 500 }
-      )
-    }
-    
-    // Get the current user
-    const cookieStore = cookies()
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    // Log user information for debugging
-    console.log("User authentication check:", {
-      hasUser: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      error: userError
-    })
-    
-    if (userError || !user) {
-      return NextResponse.json(
-        { 
-          error: "Authentication required",
-          debug: { userError }
-        },
-        { status: 401 }
       )
     }
     

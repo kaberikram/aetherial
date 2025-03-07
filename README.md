@@ -30,11 +30,9 @@ A beautiful 3D dream journal web application with visualization and exploration 
 3. **Explore Page**: Navigate the 3D dreamscape to explore your dreams.
 4. **Settings**: Manage your dream journal data and application preferences.
 
-
-
 ## Creator
 
-- **ikram hakim** - [Email](mailto:ikramandhakim@gmail.com) - [Twitter](https://x.com/Kaberikram)
+- **Kaberikram** - [Email](mailto:ikramandhakim@gmail.com) - [X](https://x.com/Kaberikram)
 
 ## License
 
