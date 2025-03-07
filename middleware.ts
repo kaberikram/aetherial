@@ -1,6 +1,26 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Redirect root path to /home if user has visited before
+  if (request.nextUrl.pathname === '/') {
+    // Check if user has visited before using cookies
+    const hasVisitedBefore = request.cookies.has('visited_before')
+    
+    if (hasVisitedBefore) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/home'
+      return NextResponse.redirect(url)
+    } else {
+      // Set a cookie to remember that the user has visited
+      const response = NextResponse.next()
+      response.cookies.set('visited_before', 'true', { 
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        path: '/' 
+      })
+      return response
+    }
+  }
+
   // Redirect /profile to /settings
   if (request.nextUrl.pathname.startsWith('/profile')) {
     const url = request.nextUrl.clone()
