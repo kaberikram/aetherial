@@ -20,6 +20,8 @@ export default function LandingPage() {
   const handleLanguageChange = (lang: 'en' | 'ms') => {
     setLanguage(lang);
     localStorage.setItem('language', lang);
+    // Dispatch custom event for other components
+    window.dispatchEvent(new StorageEvent('storage-local', { key: 'language', newValue: lang }));
   };
 
   // Apply landing-page class to document body and html

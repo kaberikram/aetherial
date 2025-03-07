@@ -96,12 +96,12 @@ function incrementUsage() {
 }
 
 // Add this component before the DreamImageGenerator component
-function LoadingOverlay() {
+function LoadingOverlay({ language }: { language: 'en' | 'ms' }) {
   return (
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center rounded-lg">
       <div className="bg-zinc-900/90 p-6 rounded-lg border border-zinc-700/50 flex flex-col items-center gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-        <p className="text-zinc-300 text-sm">Generating your dream visualization...</p>
+        <p className="text-zinc-300 text-sm">{translations[language].generating}</p>
       </div>
     </div>
   )
@@ -275,163 +275,167 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
 
   return (
     <div className="space-y-4">
-      {!generatedImage && !isGenerating && (
-        <div className="bg-zinc-800/30 rounded-lg border border-zinc-700/30 p-6 text-center space-y-4">
-          <h3 className="text-lg font-medium">{translations[language].generateDreamVisualization}</h3>
-          <p className="text-zinc-400 text-sm">
-            {translations[language].createAiVisualization}
-          </p>
-          
-          <div className="text-sm text-zinc-400 mb-4">
-            <div className="flex items-center justify-center gap-1">
-              <span>{translations[language].generationsRemaining} </span>
-              <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {remainingGenerations}
-              </span>
-              <span>/{MAX_GENERATIONS_PER_DAY}</span>
+      <div className="relative min-h-[200px]">
+        {/* Initial state */}
+        {!generatedImage && (
+          <div className="bg-zinc-800/30 rounded-lg border border-zinc-700/30 p-6 text-center space-y-4">
+            <h3 className="text-lg font-medium">{translations[language].generateDreamVisualization}</h3>
+            <p className="text-zinc-400 text-sm">
+              {translations[language].createAiVisualization}
+            </p>
+            
+            <div className="text-sm text-zinc-400 mb-4">
+              <div className="flex items-center justify-center gap-1">
+                <span>{translations[language].generationsRemaining} </span>
+                <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {remainingGenerations}
+                </span>
+                <span>/{MAX_GENERATIONS_PER_DAY}</span>
+              </div>
+              
+              {remainingGenerations <= 2 && (
+                <div className="mt-2 text-xs text-amber-300">
+                  <button 
+                    className="underline hover:text-amber-200 transition-colors"
+                    onClick={() => setShowDonateInfo(!showDonateInfo)}
+                  >
+                    {translations[language].supportFeature}
+                  </button>
+                </div>
+              )}
             </div>
             
-            {remainingGenerations <= 2 && (
-              <div className="mt-2 text-xs text-amber-300">
-                <button 
-                  className="underline hover:text-amber-200 transition-colors"
-                  onClick={() => setShowDonateInfo(!showDonateInfo)}
-                >
-                  {translations[language].supportFeature}
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {showDonateInfo && (
-            <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20 mb-2">
-              <p className="text-zinc-300 mb-2">
-                {translations[language].dreamVisualizationsPowered}
-              </p>
-              <Button 
-                onClick={handleDonateClick}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
-              >
-                💳 {translations[language].supportThisFeature}
-              </Button>
-            </div>
-          )}
-          
-          <GradientButton
-            onClick={generateImage}
-            disabled={isGenerating || remainingGenerations <= 0}
-            className="w-full"
-          >
-            {isGenerating ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {translations[language].generating}
-              </div>
-            ) : (
-              translations[language].generateVisualization
-            )}
-          </GradientButton>
-          
-          {remainingGenerations === 0 && (
-            <div className="mt-2 bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                <p className="text-zinc-300 text-left">
-                  {translations[language].limitReached.replace('{limit}', MAX_GENERATIONS_PER_DAY.toString())}
+            {showDonateInfo && (
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20 mb-2">
+                <p className="text-zinc-300 mb-2">
+                  {translations[language].dreamVisualizationsPowered}
                 </p>
+                <Button 
+                  onClick={handleDonateClick}
+                  className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
+                >
+                  💳 {translations[language].supportThisFeature}
+                </Button>
               </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Add loading overlay when generating */}
-      {isGenerating && (
-        <LoadingOverlay />
-      )}
-
-      {/* Update the generated image container to be relative for overlay positioning */}
-      {generatedImage && (
-        <div className="space-y-4 relative">
-          <div className={`relative overflow-hidden rounded-lg border border-zinc-700/50 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}>
-            {/* Show loading overlay when regenerating */}
-            {isGenerating && <LoadingOverlay />}
-            <div 
-              className={`transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
-              onClick={toggleZoom}
-            >
-              <img 
-                src={generatedImage} 
-                alt="Generated dream visualization" 
-                className="w-full h-auto"
-              />
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={downloadImage}
-              className="flex items-center gap-1"
-            >
-              <Download className="h-4 w-4" />
-              {translations[language].downloadImage}
-            </Button>
+            )}
             
-            <Button 
-              variant="outline" 
-              size="sm"
+            <GradientButton
               onClick={generateImage}
               disabled={isGenerating || remainingGenerations <= 0}
-              className="flex items-center gap-1"
+              className="w-full"
             >
-              <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? translations[language].generating : translations[language].regenerateImage}
-            </Button>
+              {isGenerating ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {translations[language].generating}
+                </div>
+              ) : (
+                translations[language].generateVisualization
+              )}
+            </GradientButton>
             
-            {debugInfo && (
+            {remainingGenerations === 0 && (
+              <div className="mt-2 bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-zinc-300 text-left">
+                    {translations[language].limitReached.replace('{limit}', MAX_GENERATIONS_PER_DAY.toString())}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading overlay */}
+        {isGenerating && !generatedImage && (
+          <LoadingOverlay language={language} />
+        )}
+      </div>
+
+      {/* Generated image section */}
+      {generatedImage && (
+        <div className="space-y-4">
+          <div className="relative">
+            <div className={`relative overflow-hidden rounded-lg border border-zinc-700/50 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}>
+              {isGenerating && <LoadingOverlay language={language} />}
+              <div 
+                className={`transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
+                onClick={toggleZoom}
+              >
+                <img 
+                  src={generatedImage} 
+                  alt="Generated dream visualization" 
+                  className="w-full h-auto"
+                />
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={toggleDebugInfo}
+                onClick={downloadImage}
                 className="flex items-center gap-1"
               >
-                <Info className="h-4 w-4" />
-                {showDebug ? translations[language].hideDebugInfo : translations[language].showDebugInfo}
+                <Download className="h-4 w-4" />
+                {translations[language].downloadImage}
               </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={generateImage}
+                disabled={isGenerating || remainingGenerations <= 0}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                {isGenerating ? translations[language].generating : translations[language].regenerateImage}
+              </Button>
+              
+              {debugInfo && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={toggleDebugInfo}
+                  className="flex items-center gap-1"
+                >
+                  <Info className="h-4 w-4" />
+                  {showDebug ? translations[language].hideDebugInfo : translations[language].showDebugInfo}
+                </Button>
+              )}
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={toggleZoom}
+                className="flex items-center gap-1"
+              >
+                {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
+                {translations[language].toggleZoom}
+              </Button>
+            </div>
+            
+            {showDebug && debugInfo && (
+              <div className="mt-4 p-4 bg-zinc-900 rounded-lg border border-zinc-800 overflow-x-auto">
+                <h4 className="text-sm font-medium mb-2">{translations[language].debugInformation}</h4>
+                <pre className="text-xs text-zinc-400">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </div>
             )}
             
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={toggleZoom}
-              className="flex items-center gap-1"
-            >
-              {isZoomed ? <ZoomOut className="h-4 w-4" /> : <ZoomIn className="h-4 w-4" />}
-              {translations[language].toggleZoom}
-            </Button>
-          </div>
-          
-          {showDebug && debugInfo && (
-            <div className="mt-4 p-4 bg-zinc-900 rounded-lg border border-zinc-800 overflow-x-auto">
-              <h4 className="text-sm font-medium mb-2">{translations[language].debugInformation}</h4>
-              <pre className="text-xs text-zinc-400">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </div>
-          )}
-          
-          {error && (
-            <div className="mt-4 p-4 bg-red-900/20 rounded-lg border border-red-800/30">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-red-300 text-sm">{error}</p>
+            {error && (
+              <div className="mt-4 p-4 bg-red-900/20 rounded-lg border border-red-800/30">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-red-300 text-sm">{error}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
