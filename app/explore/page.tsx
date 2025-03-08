@@ -203,27 +203,7 @@ function WaterFloor({ playerPosition, dreams }: {
       
       // Function to get dream position
       const getDreamPosition = (id: string) => {
-        // Special positioning for sample dreams to ensure they're well distributed
-        if (id.startsWith("sample_dream_")) {
-          // Extract the number from the sample dream ID
-          const sampleNumber = parseInt(id.split("_")[2])
-          
-          // Distribute sample dreams in a wide circle
-          const sampleCount = 6 // Total number of sample dreams
-          const angle = ((sampleNumber - 1) / sampleCount) * Math.PI * 2
-          
-          // Use different distances based on the sample number to create a spiral effect
-          const baseDistance = 15
-          const distanceVariation = 5
-          const distance = baseDistance + (sampleNumber % 3) * distanceVariation
-          
-          return {
-            x: Math.cos(angle) * distance,
-            z: Math.sin(angle) * distance
-          }
-        }
-        
-        // For non-sample dreams, use a hash-based approach for random but consistent positioning
+        // For all dreams, use a hash-based approach for random but consistent positioning
         let hash = 0
         for (let i = 0; i < id.length; i++) {
           hash = ((hash << 5) - hash) + id.charCodeAt(i)
@@ -783,27 +763,7 @@ function DreamPoints({ dreams, boatPosition }: { dreams: DreamEntry[], boatPosit
   
   // Generate a consistent position for each dream based on its ID
   const getDreamPosition = (id: string, totalDreams: number) => {
-    // Special positioning for sample dreams to ensure they're well distributed
-    if (id.startsWith("sample_dream_")) {
-      // Extract the number from the sample dream ID
-      const sampleNumber = parseInt(id.split("_")[2])
-      
-      // Distribute sample dreams in a wide circle
-      const sampleCount = 6 // Total number of sample dreams
-      const angle = ((sampleNumber - 1) / sampleCount) * Math.PI * 2
-      
-      // Use different distances based on the sample number to create a spiral effect
-      const baseDistance = 15
-      const distanceVariation = 5
-      const distance = baseDistance + (sampleNumber % 3) * distanceVariation
-      
-      return {
-        x: Math.cos(angle) * distance,
-        z: Math.sin(angle) * distance
-      }
-    }
-    
-    // For non-sample dreams, use a hash-based approach for random but consistent positioning
+    // For all dreams, use a hash-based approach for random but consistent positioning
     let hash = 0
     for (let i = 0; i < id.length; i++) {
       hash = ((hash << 5) - hash) + id.charCodeAt(i)

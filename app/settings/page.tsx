@@ -14,6 +14,19 @@ import { toast } from "sonner"
 // Daily generation limit - must match the API
 const DAILY_LIMIT = 2
 
+interface Dream {
+  id: string
+  date: string
+  content: string
+  title: string
+  summary?: string
+  interpretation?: string
+  tags?: string[]
+  mood?: string
+  lucidity?: number
+  vividness?: number
+}
+
 export default function SettingsPage() {
   const router = useRouter()
   const [showConfirmation, setShowConfirmation] = useState(false)
@@ -64,20 +77,29 @@ export default function SettingsPage() {
       clearing: "Clearing...",
       yesClearAll: "Yes, Clear All",
       cancel: "Cancel",
-      resetSample: "Reset with Sample Dreams",
-      resetSampleDesc: "Replace your current dreams with a set of 6 sample dreams.",
+      resetSample: "Reset Dreams",
+      resetSampleDesc: "Clear all your dreams and start fresh.",
       resetting: "Resetting...",
       resetDreams: "Reset Dreams",
       exportData: "Export Data",
-      exportDataDesc: "Download all your dream journal entries as a JSON file.",
-      exportDreams: "Export Dreams",
+      exportDataDesc: "Download all your dream journal entries as a JSON file or PDF.",
+      exportDreamsJson: "Export as JSON",
+      exportDreamsPdf: "Export as PDF",
       about: "About",
       version: "Version",
       creator: "Creator",
       language: "Language",
       languageDesc: "Choose your preferred language",
       english: "English",
-      malay: "Bahasa Melayu"
+      malay: "Bahasa Melayu",
+      dreamJournal: "Dream Journal",
+      exportedOn: "Exported on",
+      summary: "Summary",
+      interpretation: "Interpretation",
+      tags: "Tags",
+      mood: "Mood",
+      lucidity: "Lucidity",
+      vividness: "Vividness"
     },
     ms: {
       settings: "Tetapan",
@@ -99,15 +121,24 @@ export default function SettingsPage() {
       resetting: "Memuat semula...",
       resetDreams: "Muat Semula Mimpi",
       exportData: "Eksport Data",
-      exportDataDesc: "Muat turun semua entri jurnal mimpi anda sebagai fail JSON.",
-      exportDreams: "Eksport Mimpi",
+      exportDataDesc: "Muat turun semua entri jurnal mimpi anda sebagai fail JSON atau PDF.",
+      exportDreamsJson: "Eksport sebagai JSON",
+      exportDreamsPdf: "Eksport sebagai PDF",
       about: "Tentang",
       version: "Versi",
       creator: "Pencipta",
       language: "Bahasa",
       languageDesc: "Pilih bahasa pilihan anda",
       english: "English",
-      malay: "Bahasa Melayu"
+      malay: "Bahasa Melayu",
+      dreamJournal: "Jurnal Mimpi",
+      exportedOn: "Dieksport pada",
+      summary: "Ringkasan",
+      interpretation: "Tafsiran",
+      tags: "Tag",
+      mood: "Perasaan",
+      lucidity: "Kejelasan",
+      vividness: "Ketajaman"
     }
   }
 
@@ -175,6 +206,149 @@ export default function SettingsPage() {
       console.error('Error signing out:', error)
       toast.error(language === 'en' ? 'Error signing out' : 'Ralat semasa log keluar')
     }
+  }
+
+  const handlePdfExport = () => {
+    const dreams: Dream[] = JSON.parse(localStorage.getItem("dreams") || "[]")
+    if (dreams.length === 0) return
+
+    // Create a new window for printing
+    const printWindow = window.open('', '', 'width=800,height=600')
+    if (!printWindow) return
+
+    const sortedDreams = dreams.sort((a: Dream, b: Dream) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+
+    // Create the print content
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Dream Journal</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              max-width: 800px;
+              margin: 2cm auto;
+              padding: 0 20px;
+              color: black;
+              background: white;
+            }
+            .dream-entry {
+              margin-bottom: 3rem;
+              padding-bottom: 2rem;
+              border-bottom: 1px solid black;
+              page-break-inside: avoid;
+            }
+            .dream-entry:last-child {
+              border-bottom: none;
+              margin-bottom: 0;
+              padding-bottom: 0;
+            }
+            .title {
+              font-size: 24px;
+              font-weight: 600;
+              margin-bottom: 8px;
+            }
+            .date {
+              margin-bottom: 16px;
+            }
+            .section-title {
+              font-weight: 500;
+              margin: 16px 0 8px 0;
+            }
+            .content {
+              white-space: pre-wrap;
+              margin-bottom: 16px;
+            }
+            .metadata {
+              margin: 16px 0;
+            }
+            .tags {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-top: 16px;
+            }
+            .tag {
+              border: 1px solid black;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 14px;
+            }
+            @page {
+              margin: 2cm;
+              size: A4;
+            }
+          </style>
+        </head>
+        <body>
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">
+              ${translations[language].dreamJournal}
+            </h1>
+            <p>${translations[language].exportedOn} ${new Date().toLocaleDateString(language === 'ms' ? 'ms-MY' : 'en-US')}</p>
+          </div>
+          ${sortedDreams.map(dream => `
+            <div class="dream-entry">
+              <div class="title">${dream.title}</div>
+              <div class="date">${new Date(dream.date).toLocaleDateString(language === 'ms' ? 'ms-MY' : 'en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}</div>
+              ${dream.summary ? `
+                <div class="section-title">${translations[language].summary}</div>
+                <div class="content">${dream.summary}</div>
+              ` : ''}
+              <div class="content">${dream.content}</div>
+              ${dream.interpretation ? `
+                <div class="section-title">${translations[language].interpretation}</div>
+                <div class="content">${dream.interpretation}</div>
+              ` : ''}
+              <div class="metadata">
+                ${dream.mood ? `
+                  <div>
+                    <strong>${translations[language].mood}:</strong> ${dream.mood}
+                  </div>
+                ` : ''}
+                ${dream.lucidity !== undefined ? `
+                  <div>
+                    <strong>${translations[language].lucidity}:</strong> ${dream.lucidity}/5
+                  </div>
+                ` : ''}
+                ${dream.vividness !== undefined ? `
+                  <div>
+                    <strong>${translations[language].vividness}:</strong> ${dream.vividness}/5
+                  </div>
+                ` : ''}
+              </div>
+              ${dream.tags && dream.tags.length > 0 ? `
+                <div class="section-title">${translations[language].tags}</div>
+                <div class="tags">
+                  ${dream.tags.map(tag => `
+                    <span class="tag">${tag}</span>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </body>
+      </html>
+    `)
+
+    // Wait for content to load then print
+    printWindow.document.close()
+    printWindow.focus()
+    
+    // Print after a short delay to ensure styles are loaded
+    setTimeout(() => {
+      printWindow.print()
+      // Close the window after printing (or if user cancels)
+      printWindow.onafterprint = () => printWindow.close()
+    }, 1000)
   }
 
   return (
@@ -355,22 +529,29 @@ export default function SettingsPage() {
                     <h3 className="font-medium">{translations[language].exportData}</h3>
                     <p className="text-sm text-zinc-400">{translations[language].exportDataDesc}</p>
                   </div>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
-                      const dataStr = JSON.stringify(dreams, null, 2)
-                      const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
-                      const exportFileDefaultName = `dream-journal-export-${new Date().toISOString().split('T')[0]}.json`
-                      const linkElement = document.createElement('a')
-                      linkElement.setAttribute('href', dataUri)
-                      linkElement.setAttribute('download', exportFileDefaultName)
-                      linkElement.click()
-                    }}
-                    className="shrink-0 w-full md:w-auto h-9 px-3 text-sm font-medium"
-                  >
-                    {translations[language].exportDreams}
-                  </Button>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      onClick={() => {
+                        const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
+                        const dataStr = JSON.stringify(dreams, null, 2)
+                        const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
+                        const exportFileDefaultName = 'dreams.json'
+                        const linkElement = document.createElement('a')
+                        linkElement.setAttribute('href', dataUri)
+                        linkElement.setAttribute('download', exportFileDefaultName)
+                        linkElement.click()
+                      }}
+                      className="h-9 px-4"
+                    >
+                      {translations[language].exportDreamsJson}
+                    </Button>
+                    <Button
+                      onClick={handlePdfExport}
+                      className="h-9 px-4"
+                    >
+                      {translations[language].exportDreamsPdf}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
