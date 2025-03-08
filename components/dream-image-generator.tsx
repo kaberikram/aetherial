@@ -69,6 +69,7 @@ async function checkRateLimit(): Promise<{ allowed: boolean, remaining: number }
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) {
+    console.log('No user found, returning 0 credits')
     return { allowed: false, remaining: 0 }
   }
 
@@ -90,6 +91,14 @@ async function checkRateLimit(): Promise<{ allowed: boolean, remaining: number }
   const currentCount = usage?.count || 0
   const remaining = MAX_GENERATIONS_PER_DAY - currentCount
   
+  console.log('Credit check:', {
+    userId: user.id,
+    date: today,
+    currentCount,
+    remaining,
+    allowed: remaining > 0
+  })
+  
   return { 
     allowed: remaining > 0,
     remaining
@@ -105,20 +114,31 @@ async function incrementUsage(): Promise<void> {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Try to update existing record
+  // Try to get existing record first
+  const { data: existingData } = await supabase
+    .from('image_generation_usage')
+    .select('count')
+    .eq('user_id', user.id)
+    .eq('date', today)
+    .single()
+
+  // If no record exists, create one with count 1
+  // If record exists, increment the count
+  const newCount = (existingData?.count || 0) + 1
+
   const { error: updateError } = await supabase
     .from('image_generation_usage')
     .upsert({
       user_id: user.id,
       date: today,
-      count: 1
+      count: newCount
     }, {
-      onConflict: 'user_id,date',
-      ignoreDuplicates: false
+      onConflict: 'user_id,date'
     })
 
   if (updateError) {
     console.error('Error incrementing usage:', updateError)
+    throw new Error('Failed to update usage count')
   }
 }
 
@@ -320,8 +340,8 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="relative min-h-[200px]">
+    <div className="space-y-4 md:space-y-0 md:mt-0">
+      <div className="relative min-h-[10px]">
         {/* Initial state */}
         {!generatedImage && (
           <div className="bg-zinc-800/30 rounded-lg border border-zinc-700/30 p-6 text-center space-y-4">
@@ -416,7 +436,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
       {generatedImage && (
         <div className="space-y-4">
           <div className="relative">
-            <div className={`relative overflow-hidden rounded-lg border border-zinc-700/50 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}>
+            <div className={`relative overflow-hidden rounded-lg border border-zinc-700/50 ${isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'} bg-zinc-900/50`}>
               {isGenerating && <LoadingOverlay language={language} />}
               <div 
                 className={`transition-transform duration-300 ${isZoomed ? 'scale-150' : 'scale-100'}`}
@@ -426,11 +446,12 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
                   src={generatedImage} 
                   alt="Generated dream visualization" 
                   className="w-full h-auto"
+                  loading="eager"
                 />
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mt-4">
               <Button 
                 variant="outline" 
                 size="sm"
