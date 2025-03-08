@@ -40,6 +40,10 @@ export default function LandingPage() {
     en: {
       title: "Capture Your Dreams, Unlock Your Mind",
       description: "A beautiful and intuitive dream journal that helps you record, explore, and understand your dreams.",
+      startDreaming: "Enter the Dreamscape",
+      joinNow: "Join Now",
+      signIn: "Sign In",
+      signUp: "Sign Up",
       features: "Features",
       howItWorks: "How It Works",
       readyToStart: "Ready to Start Your Dream Journey?",
@@ -56,11 +60,16 @@ export default function LandingPage() {
       exploreAnalyze: "Explore and Analyze",
       exploreAnalyzeDesc: "Use our powerful search and filtering tools to discover patterns and connections in your dream journal.",
       visualizeShare: "Visualize and Share",
-      visualizeShareDesc: "Transform your dreams into stunning 3D visualizations and optionally share them with the community."
+      visualizeShareDesc: "Transform your dreams into stunning 3D visualizations and optionally share them with the community.",
+      exploreDescription: "Start capturing and exploring your dreams today. Join our community of dreamers.",
     },
     ms: {
       title: "Tangkap Mimpi Anda, Buka Minda Anda",
       description: "Jurnal mimpi yang cantik dan intuitif yang membantu anda merekod, meneroka, dan memahami mimpi anda.",
+      startDreaming: "Masuk ke Alam Mimpi",
+      joinNow: "Sertai Sekarang",
+      signIn: "Log Masuk",
+      signUp: "Daftar",
       features: "Ciri-ciri",
       howItWorks: "Cara Ia Berfungsi",
       readyToStart: "Bersedia untuk Memulakan Perjalanan Mimpi Anda?",
@@ -77,7 +86,8 @@ export default function LandingPage() {
       exploreAnalyze: "Terokai dan Analisis",
       exploreAnalyzeDesc: "Gunakan alat carian dan penapisan yang kuat untuk menemui corak dan hubungan dalam jurnal mimpi anda.",
       visualizeShare: "Visualisasikan dan Kongsikan",
-      visualizeShareDesc: "Ubah mimpi anda menjadi visualisasi 3D yang menakjubkan dan pilih untuk berkongsi dengan komuniti."
+      visualizeShareDesc: "Ubah mimpi anda menjadi visualisasi 3D yang menakjubkan dan pilih untuk berkongsi dengan komuniti.",
+      exploreDescription: "Mula tangkap dan terokai mimpi anda hari ini. Sertai komuniti pemimpi kami.",
     }
   };
 
@@ -110,9 +120,12 @@ export default function LandingPage() {
               {translations[language].description}
             </p>
             <div className="flex justify-center">
-              <Link href="/home" className="w-full sm:w-auto">
-                <GradientButton className="w-full px-8 py-3 text-lg flex items-center justify-center gap-2">
-                  {translations[language].startExploring} <ArrowRight className="h-5 w-5" />
+              <Link href="/login" className="w-full sm:w-auto">
+                <GradientButton className="w-full px-8 py-3 text-lg flex items-center justify-center gap-2 group">
+                  {translations[language].startDreaming}
+                  <span className="inline-block transition-transform group-hover:translate-x-1">
+                    ✧
+                  </span>
                 </GradientButton>
               </Link>
             </div>
@@ -203,11 +216,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">{translations[language].readyToStart}</h2>
           <p className="text-lg text-zinc-400 mb-8 max-w-2xl mx-auto">
-            {translations[language].explore}
+            {translations[language].exploreDescription}
           </p>
-          <Link href="/home">
+          <Link href="/signup">
             <GradientButton className="px-8 py-3 text-lg">
-              {translations[language].startExploring}
+              {translations[language].joinNow}
             </GradientButton>
           </Link>
         </div>

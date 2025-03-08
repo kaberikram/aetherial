@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Trash2, AlertTriangle, RefreshCw, InfoIcon, Globe2 } from "lucide-react"
+import { ArrowLeft, Trash2, AlertTriangle, RefreshCw, InfoIcon, Globe2, User, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { forceResetWithAllSampleDreams } from "@/utils/sampleDream"
+import { createClient } from "@/utils/supabase/client"
 import { toast } from "sonner"
 
 // Daily generation limit - must match the API
@@ -19,6 +20,8 @@ export default function SettingsPage() {
   const [isClearing, setIsClearing] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [language, setLanguage] = useState<'en' | 'ms'>('en')
+  const [user, setUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Load saved language
   useEffect(() => {
@@ -28,9 +31,29 @@ export default function SettingsPage() {
     }
   }, [])
 
+  // Load user data
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error) throw error
+        setUser(user)
+      } catch (error) {
+        console.error('Error loading user:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadUser()
+  }, [])
+
   const translations = {
     en: {
       settings: "Settings",
+      profile: "Profile",
+      email: "Email",
+      signOut: "Sign Out",
       dataPrivacy: "Data Privacy",
       dataPrivacyDesc: "All your dream data is stored locally on your device. Nothing is sent to any server. Your privacy is important to us.",
       dataManagement: "Data Management",
@@ -58,6 +81,9 @@ export default function SettingsPage() {
     },
     ms: {
       settings: "Tetapan",
+      profile: "Profil",
+      email: "Emel",
+      signOut: "Log Keluar",
       dataPrivacy: "Privasi Data",
       dataPrivacyDesc: "Semua data mimpi anda disimpan secara lokal di peranti anda. Tiada data dihantar ke mana-mana pelayan. Privasi anda penting bagi kami.",
       dataManagement: "Pengurusan Data",
@@ -140,6 +166,17 @@ export default function SettingsPage() {
     toast.success(newLanguage === 'en' ? "Language changed to English" : "Bahasa ditukar ke Bahasa Melayu")
   }
 
+  const handleSignOut = async () => {
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Error signing out:', error)
+      toast.error(language === 'en' ? 'Error signing out' : 'Ralat semasa log keluar')
+    }
+  }
+
   return (
     <div className="min-h-screen pb-16 md:pb-0 settings-page">
       <header className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm border-b border-zinc-800/50 px-4 py-3">
@@ -153,6 +190,34 @@ export default function SettingsPage() {
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="space-y-8">
+          {/* User Profile Section */}
+          {!isLoading && user && (
+            <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
+              <div className="flex items-start gap-3">
+                <div className="mt-1">
+                  <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
+                    <User className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold mb-2">{translations[language].profile}</h2>
+                  <div className="text-zinc-400 mb-4">
+                    <div className="text-sm">{translations[language].email}</div>
+                    <div className="text-white">{user.email}</div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={handleSignOut}
+                    className="h-9 px-3 text-sm font-medium"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {translations[language].signOut}
+                  </Button>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Language Selection */}
           <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
             <div className="flex items-start gap-3">
