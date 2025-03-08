@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Loader2, RefreshCw, Info, ZoomIn, ZoomOut, Download, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+import { createClient } from "@/utils/supabase/client"
 
 interface DreamImageGeneratorProps {
   summary: string
@@ -30,7 +31,9 @@ const translations = {
     showDebugInfo: "Show Debug Info",
     hideDebugInfo: "Hide Debug Info",
     toggleZoom: "Toggle Zoom",
-    debugInformation: "Debug Information"
+    debugInformation: "Debug Information",
+    pleaseSignIn: "Please sign in to generate dream images.",
+    authRequired: "Authentication required"
   },
   ms: {
     generateDreamVisualization: "Jana Visualisasi Mimpi",
@@ -50,7 +53,9 @@ const translations = {
     showDebugInfo: "Tunjuk Maklumat Debug",
     hideDebugInfo: "Sembunyi Maklumat Debug",
     toggleZoom: "Togol Zum",
-    debugInformation: "Maklumat Debug"
+    debugInformation: "Maklumat Debug",
+    pleaseSignIn: "Sila masuk untuk menjana gambar mimpi.",
+    authRequired: "Diperlukan otentikasi"
   }
 };
 
@@ -59,20 +64,32 @@ const MAX_GENERATIONS_PER_DAY = 5
 const RATE_LIMIT_STORAGE_KEY = "image_generation_usage"
 
 // Helper function to check and update rate limits
-function checkRateLimit(): { allowed: boolean, remaining: number } {
-  if (typeof window === 'undefined') {
+async function checkRateLimit(): Promise<{ allowed: boolean, remaining: number }> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
     return { allowed: false, remaining: 0 }
   }
+
+  const today = new Date().toISOString().split('T')[0]
   
-  const today = new Date().toDateString()
-  let usage = JSON.parse(localStorage.getItem(RATE_LIMIT_STORAGE_KEY) || '{"date":"","count":0}')
-  
-  // Reset if it's a new day
-  if (usage.date !== today) {
-    usage = { date: today, count: 0 }
+  // Try to get today's usage
+  const { data: usage, error } = await supabase
+    .from('image_generation_usage')
+    .select('count')
+    .eq('user_id', user.id)
+    .eq('date', today)
+    .single()
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+    console.error('Error checking rate limit:', error)
+    return { allowed: false, remaining: 0 }
   }
+
+  const currentCount = usage?.count || 0
+  const remaining = MAX_GENERATIONS_PER_DAY - currentCount
   
-  const remaining = MAX_GENERATIONS_PER_DAY - usage.count
   return { 
     allowed: remaining > 0,
     remaining
@@ -80,19 +97,29 @@ function checkRateLimit(): { allowed: boolean, remaining: number } {
 }
 
 // Helper function to increment usage
-function incrementUsage() {
-  if (typeof window === 'undefined') return
+async function incrementUsage(): Promise<void> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   
-  const today = new Date().toDateString()
-  let usage = JSON.parse(localStorage.getItem(RATE_LIMIT_STORAGE_KEY) || '{"date":"","count":0}')
-  
-  // Reset if it's a new day
-  if (usage.date !== today) {
-    usage = { date: today, count: 0 }
+  if (!user) return
+
+  const today = new Date().toISOString().split('T')[0]
+
+  // Try to update existing record
+  const { error: updateError } = await supabase
+    .from('image_generation_usage')
+    .upsert({
+      user_id: user.id,
+      date: today,
+      count: 1
+    }, {
+      onConflict: 'user_id,date',
+      ignoreDuplicates: false
+    })
+
+  if (updateError) {
+    console.error('Error incrementing usage:', updateError)
   }
-  
-  usage.count += 1
-  localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(usage))
 }
 
 // Add this component before the DreamImageGenerator component
@@ -117,12 +144,24 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   const [remainingGenerations, setRemainingGenerations] = useState<number>(MAX_GENERATIONS_PER_DAY)
   const [showDonateInfo, setShowDonateInfo] = useState(false)
   const [language, setLanguage] = useState<'en' | 'ms'>('en')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   // Check rate limits and set language
   useEffect(() => {
-    // Check rate limits
-    const { remaining } = checkRateLimit()
-    setRemainingGenerations(remaining)
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsLoggedIn(!!user)
+      
+      if (user) {
+        const { remaining } = await checkRateLimit()
+        setRemainingGenerations(remaining)
+      } else {
+        setRemainingGenerations(0)
+      }
+    }
+    
+    checkAuth()
 
     // Set language from localStorage
     const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
@@ -156,8 +195,15 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
   }, [])
 
   const generateImage = async () => {
+    if (!isLoggedIn) {
+      toast.error(translations[language].authRequired, {
+        description: translations[language].pleaseSignIn
+      })
+      return
+    }
+
     // Check rate limit
-    const { allowed, remaining } = checkRateLimit()
+    const { allowed, remaining } = await checkRateLimit()
     if (!allowed) {
       const errorMessage = translations[language].limitReached.replace('{limit}', MAX_GENERATIONS_PER_DAY.toString())
       setError(errorMessage)
@@ -183,7 +229,7 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
         setDebugInfo(response.data.debug || null)
         
         // Increment usage count
-        incrementUsage()
+        await incrementUsage()
         setRemainingGenerations(remaining - 1)
         
         toast.success(translations[language].dreamImageGenerated)
@@ -222,8 +268,8 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
       // Check for specific error types
       if (error.response?.status === 401) {
         // Authentication error
-        toast.error("Authentication required", {
-          description: "Please sign in to generate dream images."
+        toast.error(translations[language].authRequired, {
+          description: translations[language].pleaseSignIn
         })
       } else if (error.response?.data?.debug?.missingApiKey) {
         // Missing API key error
@@ -284,65 +330,78 @@ export function DreamImageGenerator({ summary }: DreamImageGeneratorProps) {
               {translations[language].createAiVisualization}
             </p>
             
-            <div className="text-sm text-zinc-400 mb-4">
-              <div className="flex items-center justify-center gap-1">
-                <span>{translations[language].generationsRemaining} </span>
-                <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {remainingGenerations}
-                </span>
-                <span>/{MAX_GENERATIONS_PER_DAY}</span>
-              </div>
-              
-              {remainingGenerations <= 2 && (
-                <div className="mt-2 text-xs text-amber-300">
-                  <button 
-                    className="underline hover:text-amber-200 transition-colors"
-                    onClick={() => setShowDonateInfo(!showDonateInfo)}
-                  >
-                    {translations[language].supportFeature}
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            {showDonateInfo && (
-              <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20 mb-2">
-                <p className="text-zinc-300 mb-2">
-                  {translations[language].dreamVisualizationsPowered}
-                </p>
-                <Button 
-                  onClick={handleDonateClick}
-                  className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
-                >
-                  💳 {translations[language].supportThisFeature}
-                </Button>
-              </div>
-            )}
-            
-            <GradientButton
-              onClick={generateImage}
-              disabled={isGenerating || remainingGenerations <= 0}
-              className="w-full"
-            >
-              {isGenerating ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {translations[language].generating}
-                </div>
-              ) : (
-                translations[language].generateVisualization
-              )}
-            </GradientButton>
-            
-            {remainingGenerations === 0 && (
-              <div className="mt-2 bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20">
+            {!isLoggedIn ? (
+              <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
                   <p className="text-zinc-300 text-left">
-                    {translations[language].limitReached.replace('{limit}', MAX_GENERATIONS_PER_DAY.toString())}
+                    {translations[language].pleaseSignIn}
                   </p>
                 </div>
               </div>
+            ) : (
+              <>
+                <div className="text-sm text-zinc-400 mb-4">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>{translations[language].generationsRemaining} </span>
+                    <span className={`font-bold ${remainingGenerations > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {remainingGenerations}
+                    </span>
+                    <span>/{MAX_GENERATIONS_PER_DAY}</span>
+                  </div>
+                  
+                  {remainingGenerations <= 2 && (
+                    <div className="mt-2 text-xs text-amber-300">
+                      <button 
+                        className="underline hover:text-amber-200 transition-colors"
+                        onClick={() => setShowDonateInfo(!showDonateInfo)}
+                      >
+                        {translations[language].supportFeature}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                {showDonateInfo && (
+                  <div className="bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20 mb-2">
+                    <p className="text-zinc-300 mb-2">
+                      {translations[language].dreamVisualizationsPowered}
+                    </p>
+                    <Button 
+                      onClick={handleDonateClick}
+                      className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-medium"
+                    >
+                      💳 {translations[language].supportThisFeature}
+                    </Button>
+                  </div>
+                )}
+                
+                <GradientButton
+                  onClick={generateImage}
+                  disabled={isGenerating || remainingGenerations <= 0}
+                  className="w-full"
+                >
+                  {isGenerating ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {translations[language].generating}
+                    </div>
+                  ) : (
+                    translations[language].generateVisualization
+                  )}
+                </GradientButton>
+                
+                {remainingGenerations === 0 && (
+                  <div className="mt-2 bg-zinc-800/50 rounded-lg p-3 text-sm border border-amber-500/20">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-zinc-300 text-left">
+                        {translations[language].limitReached.replace('{limit}', MAX_GENERATIONS_PER_DAY.toString())}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
