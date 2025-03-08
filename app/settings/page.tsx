@@ -238,7 +238,7 @@ export default function SettingsPage() {
             .dream-entry {
               margin-bottom: 3rem;
               padding-bottom: 2rem;
-              border-bottom: 1px solid black;
+              border-bottom: 1px solid #eee;
               page-break-inside: avoid;
             }
             .dream-entry:last-child {
@@ -249,52 +249,60 @@ export default function SettingsPage() {
             .title {
               font-size: 24px;
               font-weight: 600;
-              margin-bottom: 8px;
+              margin-bottom: 0.5rem;
             }
             .date {
-              margin-bottom: 16px;
+              color: #666;
+              margin-bottom: 1.5rem;
             }
             .section-title {
-              font-weight: 500;
-              margin: 16px 0 8px 0;
+              font-weight: 600;
+              margin-top: 1rem;
+              margin-bottom: 0.5rem;
             }
             .content {
+              margin-bottom: 1rem;
               white-space: pre-wrap;
-              margin-bottom: 16px;
             }
             .metadata {
-              margin: 16px 0;
+              margin: 1rem 0;
+              color: #666;
+            }
+            .metadata > div {
+              margin-bottom: 0.25rem;
             }
             .tags {
               display: flex;
               flex-wrap: wrap;
-              gap: 8px;
-              margin-top: 16px;
+              gap: 0.5rem;
             }
             .tag {
-              border: 1px solid black;
-              padding: 4px 8px;
-              border-radius: 4px;
-              font-size: 14px;
+              background: #f3f4f6;
+              padding: 0.25rem 0.75rem;
+              border-radius: 9999px;
+              font-size: 0.875rem;
             }
-            @page {
-              margin: 2cm;
-              size: A4;
+            @media print {
+              body {
+                margin: 0;
+                padding: 2cm;
+              }
             }
           </style>
         </head>
         <body>
-          <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">
-              ${translations[language].dreamJournal}
-            </h1>
-            <p>${translations[language].exportedOn} ${new Date().toLocaleDateString(language === 'ms' ? 'ms-MY' : 'en-US')}</p>
-          </div>
+          <h1 style="text-align: center; margin-bottom: 2rem;">${translations[language].dreamJournal}</h1>
+          <p style="text-align: center; color: #666; margin-bottom: 3rem;">
+            ${translations[language].exportedOn} ${new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </p>
           ${sortedDreams.map(dream => `
             <div class="dream-entry">
-              <div class="title">${dream.title}</div>
-              <div class="date">${new Date(dream.date).toLocaleDateString(language === 'ms' ? 'ms-MY' : 'en-US', {
-                weekday: 'long',
+              <div class="title">${dream.title || ''}</div>
+              <div class="date">${new Date(dream.date).toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
@@ -303,28 +311,32 @@ export default function SettingsPage() {
                 <div class="section-title">${translations[language].summary}</div>
                 <div class="content">${dream.summary}</div>
               ` : ''}
-              <div class="content">${dream.content}</div>
+              ${dream.content ? `
+                <div class="content">${dream.content}</div>
+              ` : ''}
               ${dream.interpretation ? `
                 <div class="section-title">${translations[language].interpretation}</div>
                 <div class="content">${dream.interpretation}</div>
               ` : ''}
-              <div class="metadata">
-                ${dream.mood ? `
-                  <div>
-                    <strong>${translations[language].mood}:</strong> ${dream.mood}
-                  </div>
-                ` : ''}
-                ${dream.lucidity !== undefined ? `
-                  <div>
-                    <strong>${translations[language].lucidity}:</strong> ${dream.lucidity}/5
-                  </div>
-                ` : ''}
-                ${dream.vividness !== undefined ? `
-                  <div>
-                    <strong>${translations[language].vividness}:</strong> ${dream.vividness}/5
-                  </div>
-                ` : ''}
-              </div>
+              ${(dream.mood || dream.lucidity !== undefined || dream.vividness !== undefined) ? `
+                <div class="metadata">
+                  ${dream.mood ? `
+                    <div>
+                      <strong>${translations[language].mood}:</strong> ${dream.mood}
+                    </div>
+                  ` : ''}
+                  ${dream.lucidity !== undefined ? `
+                    <div>
+                      <strong>${translations[language].lucidity}:</strong> ${dream.lucidity}/5
+                    </div>
+                  ` : ''}
+                  ${dream.vividness !== undefined ? `
+                    <div>
+                      <strong>${translations[language].vividness}:</strong> ${dream.vividness}/5
+                    </div>
+                  ` : ''}
+                </div>
+              ` : ''}
               ${dream.tags && dream.tags.length > 0 ? `
                 <div class="section-title">${translations[language].tags}</div>
                 <div class="tags">
