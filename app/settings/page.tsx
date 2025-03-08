@@ -9,32 +9,22 @@ import { Button } from "@/components/ui/button"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { forceResetWithAllSampleDreams } from "@/utils/sampleDream"
 import { createClient } from "@/utils/supabase/client"
+import { getDreams, deleteAllDreams } from "@/utils/supabase/dreams"
+import type { Dream } from "@/utils/supabase/dreams"
 import { toast } from "sonner"
 
 // Daily generation limit - must match the API
 const DAILY_LIMIT = 2
 
-interface Dream {
-  id: string
-  date: string
-  content: string
-  title: string
-  summary?: string
-  interpretation?: string
-  tags?: string[]
-  mood?: string
-  lucidity?: number
-  vividness?: number
-}
-
 export default function SettingsPage() {
   const router = useRouter()
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
   const [language, setLanguage] = useState<'en' | 'ms'>('en')
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [dreams, setDreams] = useState<Dream[]>([])
+  const [isLoadingDreams, setIsLoadingDreams] = useState(false)
 
   // Load saved language
   useEffect(() => {
@@ -44,21 +34,28 @@ export default function SettingsPage() {
     }
   }, [])
 
-  // Load user data
+  // Load user data and dreams
   useEffect(() => {
-    const loadUser = async () => {
+    const loadUserAndDreams = async () => {
       try {
+        setIsLoading(true)
         const supabase = createClient()
         const { data: { user }, error } = await supabase.auth.getUser()
         if (error) throw error
         setUser(user)
+
+        // Load dreams
+        setIsLoadingDreams(true)
+        const fetchedDreams = await getDreams()
+        setDreams(fetchedDreams)
       } catch (error) {
-        console.error('Error loading user:', error)
+        console.error('Error loading user or dreams:', error)
       } finally {
         setIsLoading(false)
+        setIsLoadingDreams(false)
       }
     }
-    loadUser()
+    loadUserAndDreams()
   }, [])
 
   const translations = {
@@ -68,7 +65,7 @@ export default function SettingsPage() {
       email: "Email",
       signOut: "Sign Out",
       dataPrivacy: "Data Privacy",
-      dataPrivacyDesc: "All your dream data is stored locally on your device. Nothing is sent to any server. Your privacy is important to us.",
+      dataPrivacyDesc: "Your dream data is securely stored in our database using Supabase. All data is encrypted in transit and at rest. Only you can access your dreams through your authenticated account.",
       dataManagement: "Data Management",
       clearJournal: "Clear Dream Journal",
       clearJournalDesc: "Delete all your dream entries. This action cannot be undone.",
@@ -77,10 +74,6 @@ export default function SettingsPage() {
       clearing: "Clearing...",
       yesClearAll: "Yes, Clear All",
       cancel: "Cancel",
-      resetSample: "Reset Dreams",
-      resetSampleDesc: "Clear all your dreams and start fresh.",
-      resetting: "Resetting...",
-      resetDreams: "Reset Dreams",
       exportData: "Export Data",
       exportDataDesc: "Download all your dream journal entries as a JSON file or PDF.",
       exportDreamsJson: "Export as JSON",
@@ -107,7 +100,7 @@ export default function SettingsPage() {
       email: "Emel",
       signOut: "Log Keluar",
       dataPrivacy: "Privasi Data",
-      dataPrivacyDesc: "Semua data mimpi anda disimpan secara lokal di peranti anda. Tiada data dihantar ke mana-mana pelayan. Privasi anda penting bagi kami.",
+      dataPrivacyDesc: "Data mimpi anda disimpan dengan selamat dalam pangkalan data kami menggunakan Supabase. Semua data dienkripsi semasa penghantaran dan penyimpanan. Hanya anda yang boleh mengakses mimpi anda melalui akaun yang disahkan.",
       dataManagement: "Pengurusan Data",
       clearJournal: "Kosongkan Jurnal Mimpi",
       clearJournalDesc: "Padamkan semua entri mimpi anda. Tindakan ini tidak boleh dibatalkan.",
@@ -116,10 +109,6 @@ export default function SettingsPage() {
       clearing: "Mengosongkan...",
       yesClearAll: "Ya, Kosongkan Semua",
       cancel: "Batal",
-      resetSample: "Muat Semula dengan Mimpi Contoh",
-      resetSampleDesc: "Gantikan mimpi semasa anda dengan set 6 mimpi contoh.",
-      resetting: "Memuat semula...",
-      resetDreams: "Muat Semula Mimpi",
       exportData: "Eksport Data",
       exportDataDesc: "Muat turun semua entri jurnal mimpi anda sebagai fail JSON atau PDF.",
       exportDreamsJson: "Eksport sebagai JSON",
@@ -153,27 +142,21 @@ export default function SettingsPage() {
     };
   }, []);
 
-  const clearAllDreams = () => {
-    setIsClearing(true)
-    setTimeout(() => {
-      localStorage.setItem("dreams", "[]")
+  const clearAllDreams = async () => {
+    try {
+      setIsClearing(true)
+      await deleteAllDreams()
       setShowConfirmation(false)
-      setIsClearing(false)
+      setDreams([]) // Update local state
       toast.success(language === 'en' ? "Dream journal cleared" : "Jurnal mimpi dikosongkan", {
         description: language === 'en' ? "All dream entries have been deleted" : "Semua entri mimpi telah dipadamkan"
       })
-    }, 1000)
-  }
-
-  const resetWithSampleDreams = () => {
-    setIsResetting(true)
-    setTimeout(() => {
-      forceResetWithAllSampleDreams()
-      setIsResetting(false)
-      toast.success(language === 'en' ? "Sample dreams added" : "Mimpi contoh ditambah", {
-        description: language === 'en' ? "Your dream journal has been reset with sample dreams" : "Jurnal mimpi anda telah dimuat semula dengan mimpi contoh"
-      })
-    }, 1000)
+    } catch (error) {
+      console.error('Error clearing dreams:', error)
+      toast.error(language === 'en' ? "Failed to clear dreams" : "Gagal mengosongkan mimpi")
+    } finally {
+      setIsClearing(false)
+    }
   }
 
   const handleLanguageChange = (newLanguage: 'en' | 'ms') => {
@@ -208,8 +191,7 @@ export default function SettingsPage() {
     }
   }
 
-  const handlePdfExport = () => {
-    const dreams: Dream[] = JSON.parse(localStorage.getItem("dreams") || "[]")
+  const handlePdfExport = async () => {
     if (dreams.length === 0) return
 
     // Create a new window for printing
@@ -227,78 +209,148 @@ export default function SettingsPage() {
         <head>
           <title>Dream Journal</title>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+            
             body {
-              font-family: system-ui, -apple-system, sans-serif;
+              font-family: 'Inter', system-ui, -apple-system, sans-serif;
               max-width: 800px;
               margin: 2cm auto;
               padding: 0 20px;
-              color: black;
+              color: #1a1a1a;
               background: white;
+              line-height: 1.6;
             }
+
+            .header {
+              text-align: center;
+              margin-bottom: 4rem;
+              padding-bottom: 2rem;
+              border-bottom: 2px solid #e5e7eb;
+            }
+
+            .header h1 {
+              font-size: 2.5rem;
+              font-weight: 700;
+              margin: 0 0 1rem 0;
+              color: #111827;
+            }
+
+            .header p {
+              color: #6b7280;
+              font-size: 0.875rem;
+            }
+
             .dream-entry {
               margin-bottom: 3rem;
-              padding-bottom: 2rem;
-              border-bottom: 1px solid #eee;
+              padding: 2rem;
+              border: 1px solid #e5e7eb;
+              border-radius: 12px;
+              background: #ffffff;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
               page-break-inside: avoid;
             }
+
             .dream-entry:last-child {
-              border-bottom: none;
               margin-bottom: 0;
-              padding-bottom: 0;
             }
+
             .title {
-              font-size: 24px;
+              font-size: 1.5rem;
               font-weight: 600;
               margin-bottom: 0.5rem;
+              color: #111827;
             }
+
             .date {
-              color: #666;
+              color: #6b7280;
+              font-size: 0.875rem;
+              margin-bottom: 1.5rem;
+              padding-bottom: 1rem;
+              border-bottom: 1px solid #f3f4f6;
+            }
+
+            .section {
               margin-bottom: 1.5rem;
             }
+
             .section-title {
               font-weight: 600;
-              margin-top: 1rem;
+              font-size: 1rem;
               margin-bottom: 0.5rem;
+              color: #374151;
             }
+
             .content {
               margin-bottom: 1rem;
               white-space: pre-wrap;
+              color: #1f2937;
             }
+
             .metadata {
-              margin: 1rem 0;
-              color: #666;
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+              gap: 1rem;
+              padding: 1rem;
+              background: #f9fafb;
+              border-radius: 8px;
+              margin-top: 1.5rem;
             }
-            .metadata > div {
+
+            .metadata-item {
+              display: flex;
+              flex-direction: column;
+            }
+
+            .metadata-label {
+              font-size: 0.75rem;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              color: #6b7280;
               margin-bottom: 0.25rem;
             }
-            .tags {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 0.5rem;
+
+            .metadata-value {
+              color: #111827;
+              font-weight: 500;
             }
-            .tag {
-              background: #f3f4f6;
-              padding: 0.25rem 0.75rem;
-              border-radius: 9999px;
-              font-size: 0.875rem;
+
+            .page-number {
+              position: running(pageNumber);
+              text-align: center;
+              font-size: 0.75rem;
+              color: #9ca3af;
             }
+
+            @page {
+              size: A4;
+              margin: 2cm;
+              @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+              }
+            }
+
             @media print {
               body {
                 margin: 0;
                 padding: 2cm;
               }
+
+              .dream-entry {
+                break-inside: avoid;
+              }
             }
           </style>
         </head>
         <body>
-          <h1 style="text-align: center; margin-bottom: 2rem;">${translations[language].dreamJournal}</h1>
-          <p style="text-align: center; color: #666; margin-bottom: 3rem;">
-            ${translations[language].exportedOn} ${new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', {
+          <div class="header">
+            <h1>Dream Journal</h1>
+            <p>${translations[language].exportedOn} ${new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'ms-MY', {
               year: 'numeric',
               month: 'long',
               day: 'numeric'
-            })}
-          </p>
+            })}</p>
+          </div>
+
           ${sortedDreams.map(dream => `
             <div class="dream-entry">
               <div class="title">${dream.title || ''}</div>
@@ -307,46 +359,75 @@ export default function SettingsPage() {
                 month: 'long',
                 day: 'numeric'
               })}</div>
+
               ${dream.summary ? `
-                <div class="section-title">${translations[language].summary}</div>
-                <div class="content">${dream.summary}</div>
-              ` : ''}
-              ${dream.content ? `
-                <div class="content">${dream.content}</div>
-              ` : ''}
-              ${dream.interpretation ? `
-                <div class="section-title">${translations[language].interpretation}</div>
-                <div class="content">${dream.interpretation}</div>
-              ` : ''}
-              ${(dream.mood || dream.lucidity !== undefined || dream.vividness !== undefined) ? `
-                <div class="metadata">
-                  ${dream.mood ? `
-                    <div>
-                      <strong>${translations[language].mood}:</strong> ${dream.mood}
-                    </div>
-                  ` : ''}
-                  ${dream.lucidity !== undefined ? `
-                    <div>
-                      <strong>${translations[language].lucidity}:</strong> ${dream.lucidity}/5
-                    </div>
-                  ` : ''}
-                  ${dream.vividness !== undefined ? `
-                    <div>
-                      <strong>${translations[language].vividness}:</strong> ${dream.vividness}/5
-                    </div>
-                  ` : ''}
+                <div class="section">
+                  <div class="section-title">${translations[language].summary}</div>
+                  <div class="content">${dream.summary}</div>
                 </div>
               ` : ''}
-              ${dream.tags && dream.tags.length > 0 ? `
-                <div class="section-title">${translations[language].tags}</div>
-                <div class="tags">
-                  ${dream.tags.map(tag => `
-                    <span class="tag">${tag}</span>
-                  `).join('')}
+
+              ${dream.unusual_events?.occurred ? `
+                <div class="section">
+                  <div class="section-title">Unusual Events</div>
+                  <div class="content">${dream.unusual_events.description}</div>
                 </div>
               ` : ''}
+
+              ${dream.final_moments ? `
+                <div class="section">
+                  <div class="section-title">Final Moments</div>
+                  <div class="content">${dream.final_moments}</div>
+                </div>
+              ` : ''}
+
+              <div class="metadata">
+                ${dream.location ? `
+                  <div class="metadata-item">
+                    <span class="metadata-label">Location</span>
+                    <span class="metadata-value">${dream.location}</span>
+                  </div>
+                ` : ''}
+                
+                ${dream.emotion ? `
+                  <div class="metadata-item">
+                    <span class="metadata-label">${translations[language].mood}</span>
+                    <span class="metadata-value">${dream.emotion}</span>
+                  </div>
+                ` : ''}
+                
+                ${dream.time_of_day ? `
+                  <div class="metadata-item">
+                    <span class="metadata-label">Time of Day</span>
+                    <span class="metadata-value">${dream.time_of_day}</span>
+                  </div>
+                ` : ''}
+                
+                ${dream.people ? `
+                  <div class="metadata-item">
+                    <span class="metadata-label">People</span>
+                    <span class="metadata-value">${dream.people}</span>
+                  </div>
+                ` : ''}
+
+                ${dream.activity ? `
+                  <div class="metadata-item">
+                    <span class="metadata-label">Activity</span>
+                    <span class="metadata-value">${dream.activity}</span>
+                  </div>
+                ` : ''}
+
+                ${dream.symbols ? `
+                  <div class="metadata-item">
+                    <span class="metadata-label">Symbols</span>
+                    <span class="metadata-value">${dream.symbols}</span>
+                  </div>
+                ` : ''}
+              </div>
             </div>
           `).join('')}
+
+          <div class="page-number"></div>
         </body>
       </html>
     `)
@@ -511,40 +592,12 @@ export default function SettingsPage() {
               <div className="pt-4 border-t border-zinc-800/50">
                 <div className="flex flex-col gap-3 mb-2">
                   <div>
-                    <h3 className="font-medium">{translations[language].resetSample}</h3>
-                    <p className="text-sm text-zinc-400">{translations[language].resetSampleDesc}</p>
-                  </div>
-                  <Button 
-                    variant="outline"
-                    onClick={resetWithSampleDreams}
-                    disabled={isResetting}
-                    className="shrink-0 w-full md:w-auto h-9 px-3 text-sm font-medium"
-                  >
-                    {isResetting ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        {translations[language].resetting}
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        {translations[language].resetDreams}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="pt-4 border-t border-zinc-800/50">
-                <div className="flex flex-col gap-3 mb-2">
-                  <div>
                     <h3 className="font-medium">{translations[language].exportData}</h3>
                     <p className="text-sm text-zinc-400">{translations[language].exportDataDesc}</p>
                   </div>
                   <div className="flex gap-2 mt-4">
                     <Button
                       onClick={() => {
-                        const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
                         const dataStr = JSON.stringify(dreams, null, 2)
                         const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
                         const exportFileDefaultName = 'dreams.json'
@@ -554,12 +607,14 @@ export default function SettingsPage() {
                         linkElement.click()
                       }}
                       className="h-9 px-4"
+                      disabled={isLoadingDreams || dreams.length === 0}
                     >
                       {translations[language].exportDreamsJson}
                     </Button>
                     <Button
                       onClick={handlePdfExport}
                       className="h-9 px-4"
+                      disabled={isLoadingDreams || dreams.length === 0}
                     >
                       {translations[language].exportDreamsPdf}
                     </Button>
