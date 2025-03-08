@@ -6,6 +6,7 @@ import { SidebarNav } from "@/components/sidebar-nav"
 import Link from "next/link"
 import Script from "next/script"
 import { Toaster } from "@/components/ui/sonner"
+import { Analytics } from '@vercel/analytics/react'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -91,6 +92,7 @@ export default function RootLayout({
             </div>
           </div>
         </div>
+        <Analytics />
       </body>
     </html>
   )
