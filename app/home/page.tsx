@@ -8,52 +8,57 @@ import { FilterChips } from "@/components/filter-chips"
 import { SearchResults } from "@/components/search-results"
 import { PlusIcon } from "lucide-react"
 import Link from "next/link"
-import { addSampleDreamIfEmpty } from "@/utils/sampleDream"
 import { GradientButton } from "@/components/ui/gradient-button"
-
-interface DreamEntry {
-  id: string
-  title: string
-  date: string
-  location: string
-  emotion: string
-  summary: string
-  people?: string
-}
+import { getDreams } from "@/utils/supabase/dreams"
+import type { Dream } from "@/utils/supabase/dreams"
 
 export default function Home() {
-  const [dreams, setDreams] = useState<DreamEntry[]>([])
+  const [dreams, setDreams] = useState<Dream[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null)
-  const [language, setLanguage] = useState<'en' | 'ms'>('en');
+  const [language, setLanguage] = useState<'en' | 'ms'>('en')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // Load language from local storage
-    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null;
+    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
     if (savedLanguage) {
-      setLanguage(savedLanguage);
+      setLanguage(savedLanguage)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    addSampleDreamIfEmpty()
-    const savedDreams = JSON.parse(localStorage.getItem("dreams") || "[]")
-    setDreams(savedDreams.reverse())
+    async function loadDreams() {
+      try {
+        setLoading(true)
+        setError(null)
+        const fetchedDreams = await getDreams()
+        setDreams(fetchedDreams)
+      } catch (err) {
+        console.error('Failed to load dreams:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load dreams')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDreams()
   }, [])
 
   // Apply home-page class to document body and html
   useEffect(() => {
     // Add the class to hide scrollbars
-    document.body.classList.add('home-page');
-    document.documentElement.classList.add('home-page');
+    document.body.classList.add('home-page')
+    document.documentElement.classList.add('home-page')
     
     // Clean up function to remove the class when component unmounts
     return () => {
-      document.body.classList.remove('home-page');
-      document.documentElement.classList.remove('home-page');
-    };
-  }, []);
+      document.body.classList.remove('home-page')
+      document.documentElement.classList.remove('home-page')
+    }
+  }, [])
 
   // Function to get greeting based on time of day
   const getGreeting = () => {
@@ -72,6 +77,9 @@ export default function Home() {
       searchPlaceholder: "Search dreams...",
       filterByEmotion: "Filter by Emotion",
       emotions: ["Happy", "Excited", "Scared", "Anxious", "Confused", "Peaceful"],
+      loading: "Loading dreams...",
+      error: "Failed to load dreams. Please try again.",
+      noDreams: "No dreams yet. Start by capturing your first dream!"
     },
     ms: {
       readyToCapture: "Bersedia untuk merekod mimpi anda?",
@@ -80,8 +88,11 @@ export default function Home() {
       searchPlaceholder: "Cari mimpi",
       filterByEmotion: "Tapis mengikut Emosi",
       emotions: ["Gembira", "Teruja", "Takut", "Cemas", "Keliru", "Tenang"],
+      loading: "Memuat mimpi...",
+      error: "Gagal memuat mimpi. Sila cuba lagi.",
+      noDreams: "Belum ada mimpi. Mulakan dengan merekod mimpi pertama anda!"
     }
-  };
+  }
 
   return (
     <div className="min-h-screen pb-16 md:pb-0 home-page">
@@ -160,12 +171,26 @@ export default function Home() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SearchResults 
-                dreams={dreams} 
-                searchTerm={searchTerm} 
-                activeFilters={activeFilters}
-                selectedEmotion={selectedEmotion}
-              />
+              {loading ? (
+                <div className="col-span-full text-center py-8 text-zinc-400">
+                  {translations[language].loading}
+                </div>
+              ) : error ? (
+                <div className="col-span-full text-center py-8 text-red-500">
+                  {translations[language].error}
+                </div>
+              ) : dreams.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-zinc-400">
+                  {translations[language].noDreams}
+                </div>
+              ) : (
+                <SearchResults 
+                  dreams={dreams} 
+                  searchTerm={searchTerm} 
+                  activeFilters={activeFilters}
+                  selectedEmotion={selectedEmotion}
+                />
+              )}
             </div>
           </section>
         </div>

@@ -6,15 +6,8 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { DreamImageGenerator } from "@/components/dream-image-generator"
 import { BottomNav } from "@/components/bottom-nav"
-
-interface DreamEntry {
-  id: string
-  title: string
-  date: string
-  location: string
-  emotion: string
-  summary: string
-}
+import { getDreamById } from "@/utils/supabase/dreams"
+import type { Dream } from "@/utils/supabase/dreams"
 
 const translations = {
   en: {
@@ -26,6 +19,7 @@ const translations = {
     dreamSummary: "Dream Summary",
     location: "Location",
     visualization: "Visualization",
+    error: "Failed to load dream. Please try again.",
     emotions: {
       happy: "Happy",
       scared: "Scared",
@@ -44,6 +38,7 @@ const translations = {
     dreamSummary: "Ringkasan Mimpi",
     location: "Lokasi",
     visualization: "Visualisasi",
+    error: "Gagal memuat mimpi. Sila cuba lagi.",
     emotions: {
       happy: "Gembira",
       scared: "Takut",
@@ -58,8 +53,10 @@ const translations = {
 export default function DreamDetail() {
   const params = useParams()
   const id = params.id as string
-  const [dream, setDream] = useState<DreamEntry | null>(null)
+  const [dream, setDream] = useState<Dream | null>(null)
   const [language, setLanguage] = useState<'en' | 'ms'>('en')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -95,19 +92,39 @@ export default function DreamDetail() {
   }, [])
 
   useEffect(() => {
-    const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
-    const foundDream = dreams.find((d: DreamEntry) => d.id === id)
-    if (foundDream) {
-      setDream(foundDream)
-    } else {
-      router.push("/")
+    async function loadDream() {
+      try {
+        setLoading(true)
+        setError(null)
+        const fetchedDream = await getDreamById(id)
+        if (fetchedDream) {
+          setDream(fetchedDream)
+        } else {
+          router.push("/home")
+        }
+      } catch (err) {
+        console.error('Failed to load dream:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load dream')
+      } finally {
+        setLoading(false)
+      }
     }
+
+    loadDream()
   }, [id, router])
 
-  if (!dream) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse text-xl">{translations[language].loading}</div>
+      </div>
+    )
+  }
+
+  if (error || !dream) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-500 text-xl">{translations[language].error}</div>
       </div>
     )
   }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, Suspense, useMemo } from "react"
+import { useEffect, useState, useRef, Suspense, useMemo, useCallback } from "react"
 import React from 'react'
 import { Canvas, useFrame, useThree, extend } from "@react-three/fiber"
 import { Text, Html, Plane, OrbitControls } from "@react-three/drei"
@@ -9,6 +9,8 @@ import * as THREE from "three"
 import { Loader2, ChevronUp, ChevronDown } from "lucide-react"
 import { createRoot } from 'react-dom/client'
 import { BottomNav } from "@/components/bottom-nav"
+import { getDreams } from "@/utils/supabase/dreams"
+import type { Dream } from "@/utils/supabase/dreams"
 
 interface DreamEntry {
   id: string
@@ -177,7 +179,7 @@ extend({ RippleShaderMaterial });
 // Water floor with ripple effect
 function WaterFloor({ playerPosition, dreams }: { 
   playerPosition: { x: number, z: number },
-  dreams: DreamEntry[]
+  dreams: Dream[]
 }) {
   const materialRef = useRef<RippleShaderMaterial>(null);
   const { viewport } = useThree();
@@ -385,7 +387,7 @@ function LoadingUI() {
 
 // Lazy loaded 3D scene to improve initial loading
 const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls, setTouchControls }: {
-  dreams: DreamEntry[],
+  dreams: Dream[],
   explorerPosition: { x: number, z: number },
   onPositionChange: (position: { x: number, z: number }) => void,
   touchControls: { active: boolean, x: number, y: number },
@@ -421,7 +423,16 @@ const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls,
           <p>There was an error rendering the 3D scene. Please try refreshing the page.</p>
         </div>
       </div>}>
-        <Canvas shadows camera={{ position: [0, 8, 12], fov: 60, near: 0.1, far: 1000 }}>
+        <Canvas
+          shadows
+          style={{ width: '100vw', height: '100vh' }}
+          camera={{ 
+            position: [0, 8, 12], 
+            fov: 60, 
+            near: 0.1, 
+            far: 1000
+          }}
+        >
           <Suspense fallback={null}>
             <Environment />
             <WaterFloor playerPosition={explorerPosition} dreams={dreams} />
@@ -737,7 +748,7 @@ function Explorer({ onPositionChange, touchControls }: {
 }
 
 // Dream points scattered around the space
-function DreamPoints({ dreams, boatPosition }: { dreams: DreamEntry[], boatPosition: { x: number, z: number } }) {
+function DreamPoints({ dreams, boatPosition }: { dreams: Dream[], boatPosition: { x: number, z: number } }) {
   const [activePoint, setActivePoint] = useState<string | null>(null)
   
   // Check if boat is near any dream point
@@ -1328,190 +1339,135 @@ const preloadThreeResources = () => {
 
 // Main scene component that handles loading
 function DreamExplorer() {
-  const [dreams, setDreams] = useState<DreamEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSceneReady, setIsSceneReady] = useState(false)
+  const [dreams, setDreams] = useState<Dream[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [explorerPosition, setExplorerPosition] = useState({ x: 0, z: 0 })
+  const [showInstructions, setShowInstructions] = useState(true)
   const [touchControls, setTouchControls] = useState({ active: false, x: 0, y: 0 })
-  const [instructionsCollapsed, setInstructionsCollapsed] = useState(false)
-  const hasInitializedRef = useRef(false);
-  
-  // Set initial instructions state - always expanded by default
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Always start expanded
-      setInstructionsCollapsed(false);
-      
-      // No need to update on resize since we always start expanded
-    }
-  }, []);
-  
-  // Preload THREE.js resources on component mount - safely
-  useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return;
-    }
-    
-    // Ensure we only run this once
-    if (!hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      
-      // Wrap in try/catch to prevent any errors from breaking the app
-      try {
-        preloadThreeResources();
-      } catch (error) {
-        console.error("Error during preload:", error);
-        // Continue loading the app even if preloading fails
-      }
-    }
-  }, []);
-  
-  useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-      return;
-    }
-    
-    // Load dreams from localStorage
     const loadData = async () => {
       try {
-        let savedDreams = [];
-        try {
-          savedDreams = JSON.parse(localStorage.getItem("dreams") || "[]");
-        } catch (e) {
-          console.error("Error parsing dreams from localStorage:", e);
-          savedDreams = [];
-        }
-        
-        setDreams(savedDreams);
-        
-        // Simulate loading time for 3D resources
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mark scene as ready to render
-        setIsSceneReady(true);
-        
-        // Keep loading UI visible for a moment after scene is ready for smooth transition
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Finally hide loading UI
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error loading dreams:", error);
-        setIsLoading(false);
+        setLoading(true)
+        setError(null)
+        const fetchedDreams = await getDreams()
+        setDreams(fetchedDreams)
+      } catch (err) {
+        console.error('Failed to load dreams:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load dreams')
+      } finally {
+        setLoading(false)
       }
-    };
-    
-    loadData();
-    
-    return () => {
-      // Clean up any resources if needed
-    };
-  }, []);
-  
-  // Handle explorer position updates
-  const handlePositionChange = (position: { x: number, z: number }) => {
-    // Only update state if position has changed significantly
-    if (
-      !explorerPosition || 
-      Math.abs(position.x - explorerPosition.x) > 0.001 || 
-      Math.abs(position.z - explorerPosition.z) > 0.001
-    ) {
-      setExplorerPosition(position)
     }
-    
-    // The global window.explorerPosition is now set directly in the Explorer component
+
+    loadData()
+  }, [])
+
+  const handlePositionChange = (position: { x: number, z: number }) => {
+    setExplorerPosition(position)
+    // Update global position for persistence
+    if (typeof window !== 'undefined') {
+      (window as any).explorerPosition = position
+    }
   }
-  
-  // Toggle instructions panel
+
   const toggleInstructions = () => {
-    setInstructionsCollapsed(!instructionsCollapsed);
+    console.log('Toggle clicked, current state:', showInstructions)
+    setShowInstructions(!showInstructions)
   }
-  
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-xl">Loading dreams...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-500 text-xl">{error}</div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen overflow-hidden">
-      {/* Loading UI - always shown initially */}
-      {isLoading && <LoadingUI />}
-      
-      {/* Only show header on mobile */}
-      <header className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm border-b border-zinc-800 px-4 py-3 md:hidden">
-        <h1 className="text-lg font-semibold">Dream Voyage</h1>
-      </header>
-      
-      <main className="w-full h-[calc(100vh-56px-60px)] md:h-screen md:absolute md:inset-0 md:left-64 overflow-hidden">
-        {/* Only render 3D scene when ready */}
-        {isSceneReady && (
-          <DreamScene 
-            dreams={dreams} 
-            explorerPosition={explorerPosition} 
-            onPositionChange={handlePositionChange}
-            touchControls={touchControls}
-            setTouchControls={setTouchControls}
-          />
-        )}
-        
-        {/* Instructions overlay - now at the top and collapsible with icon */}
-        <div 
-          className={`absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-auto md:w-80 bg-black/80 backdrop-blur-md rounded-lg border border-white/20 text-white text-sm transition-all duration-300 z-50 shadow-lg ${instructionsCollapsed ? 'p-0 h-12' : 'p-4'}`}
-        >
-          <div 
-            className={`flex justify-between items-center w-full h-full ${instructionsCollapsed ? 'px-4 cursor-pointer' : ''}`}
-            onClick={instructionsCollapsed ? toggleInstructions : undefined}
-          >
-            <div className="flex items-center">
-              <h2 className="font-bold text-base">Dream Voyage</h2>
+    <div className="fixed inset-0 w-full h-full bg-black text-white">
+      {/* Instructions Panel - Simplified */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-20">
+        <div className="relative">
+          {showInstructions && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-black/90 border border-zinc-800 rounded-lg shadow-lg">
+              <div className="p-3">
+                <ul className="space-y-2 text-sm text-zinc-300">
+                  <li className="flex items-center gap-2">
+                    <span>⌨️</span>
+                    <span>WASD keys to move</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span>📱</span>
+                    <span>Joystick on mobile</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span>💫</span>
+                    <span>Get close to dreams to view</span>
+                  </li>
+                </ul>
+              </div>
             </div>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleInstructions();
-              }} 
-              className="text-white hover:text-white/70 flex items-center justify-center w-8 h-8 bg-zinc-800/80 rounded-full"
-              aria-label={instructionsCollapsed ? "Expand instructions" : "Collapse instructions"}
-            >
-              {instructionsCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-            </button>
-          </div>
-          
-          <div className={`${instructionsCollapsed ? 'hidden' : 'block mt-2'}`}>
-            <p>Navigate your dream explorer:</p>
-            <ul className="list-disc list-inside mt-1 text-xs text-gray-300">
-              <li className="md:block hidden">Use WASD keys for direct movement</li>
-              <li className="md:hidden block">Use the joystick to move your explorer</li>
-              <li>Approach glowing boxes to explore dreams</li>
-            </ul>
-          </div>
+          )}
+
+          <button 
+            onClick={toggleInstructions}
+            className="flex items-center gap-2 px-3 py-1.5 bg-black/90 border border-zinc-800 rounded-full hover:bg-black/70 transition-colors"
+          >
+            <span>?</span>
+            <span className="text-xs">Controls</span>
+            {showInstructions ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+          </button>
         </div>
-      </main>
-      
-      {/* Bottom navigation for mobile */}
-      <div className="md:hidden">
+      </div>
+
+      {/* Main Canvas */}
+      <div className="absolute inset-0">
+        <ErrorBoundary fallback={<div>Something went wrong with the 3D scene</div>}>
+          <Suspense fallback={<LoadingUI />}>
+            <DreamScene 
+              dreams={dreams} 
+              explorerPosition={explorerPosition}
+              onPositionChange={handlePositionChange}
+              touchControls={touchControls}
+              setTouchControls={setTouchControls}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      </div>
+
+      {/* Mobile Controls - Only show on mobile */}
+      <div className="fixed bottom-24 right-8 z-10 md:hidden">
+        <Joystick setTouchControls={setTouchControls} />
+      </div>
+
+      {/* Bottom Navigation - Show on all screen sizes */}
+      <div className="fixed bottom-0 left-0 right-0 z-10">
         <BottomNav />
       </div>
     </div>
   )
 }
 
-// Page component - simplified to just render the DreamExplorer
 export default function ExplorePage() {
-  // Add and remove the explore-page class to the body element
-  useEffect(() => {
-    // Only run on client side
-    if (typeof document === 'undefined') return;
-    
-    // Add the explore-page class to html and body
-    document.documentElement.classList.add('explore-page');
-    document.body.classList.add('explore-page');
-    
-    // Clean up when component unmounts
-    return () => {
-      document.documentElement.classList.remove('explore-page');
-      document.body.classList.remove('explore-page');
-    };
-  }, []);
-  
-  return <DreamExplorer />
+  return (
+    <div className="fixed inset-0 w-full h-full bg-black">
+      <DreamExplorer />
+    </div>
+  )
 }
 
 // Add TypeScript declaration for the global window object

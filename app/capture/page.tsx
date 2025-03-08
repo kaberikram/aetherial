@@ -6,6 +6,8 @@ import { ArrowLeft, Edit2Icon, Sparkles, Save } from "lucide-react"
 import Link from "next/link"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { BottomNav } from "@/components/bottom-nav"
+import { createDream } from "@/utils/supabase/dreams"
+import type { Dream } from "@/utils/supabase/dreams"
 
 interface DreamEntry {
   id: string
@@ -136,22 +138,22 @@ interface Translations {
 export default function DreamCapture() {
   const router = useRouter()
   const [language, setLanguage] = useState<'en' | 'ms'>('en')
-  const [dream, setDream] = useState<DreamEntry>({
-    id: "",
+  const [error, setError] = useState<string | null>(null)
+  const [dream, setDream] = useState<Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>>({
     title: `Dream ${new Date().toLocaleDateString()}`,
     date: new Date().toISOString(),
     location: "",
     people: "",
-    timeOfDay: "Unknown",
+    time_of_day: "Unknown",
     activity: "",
-    unusualEvents: {
+    unusual_events: {
       occurred: false,
       description: "",
     },
     symbols: "",
     emotion: "Happy",
     ending: "",
-    finalMoments: "",
+    final_moments: "",
     summary: "",
   })
 
@@ -189,11 +191,6 @@ export default function DreamCapture() {
     }
   }, [])
 
-  useEffect(() => {
-    // Generate a unique ID for the dream when the component mounts
-    setDream((prev) => ({ ...prev, id: `dream_${Date.now()}` }))
-  }, [])
-
   // Apply capture-page class to document body and html
   useEffect(() => {
     // Add the class to hide scrollbars
@@ -207,34 +204,48 @@ export default function DreamCapture() {
     };
   }, []);
 
-  const handleSave = () => {
-    const dreamToSave = {
-      id: dream.id,
-      title: dream.title,
-      date: dream.date,
-      location: dream.location,
-      emotion: dream.emotion,
-      summary: dream.summary || generateSummary(),
+  const handleSave = async () => {
+    try {
+      setError(null)
+      console.log('Attempting to save dream:', dream)
+      
+      const dreamToSave = {
+        ...dream,
+        summary: dream.summary || generateSummary(),
+      }
+      
+      console.log('Processed dream to save:', dreamToSave)
+      const savedDream = await createDream(dreamToSave)
+      console.log('Dream saved successfully:', savedDream)
+      
+      router.push("/home")
+    } catch (error) {
+      console.error('Failed to save dream. Full error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+      setError(errorMessage)
     }
-    const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
-    dreams.push(dreamToSave)
-    localStorage.setItem("dreams", JSON.stringify(dreams))
-    router.push("/home")
   }
 
-  const handleSaveAndVisualize = () => {
-    const dreamToSave = {
-      id: dream.id,
-      title: dream.title,
-      date: dream.date,
-      location: dream.location,
-      emotion: dream.emotion,
-      summary: dream.summary || generateSummary(),
+  const handleSaveAndVisualize = async () => {
+    try {
+      setError(null)
+      console.log('Attempting to save dream:', dream)
+      
+      const dreamToSave = {
+        ...dream,
+        summary: dream.summary || generateSummary(),
+      }
+      
+      console.log('Processed dream to save:', dreamToSave)
+      const savedDream = await createDream(dreamToSave)
+      console.log('Dream saved successfully:', savedDream)
+      
+      router.push(`/dream/${savedDream.id}`)
+    } catch (error) {
+      console.error('Failed to save dream. Full error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+      setError(errorMessage)
     }
-    const dreams = JSON.parse(localStorage.getItem("dreams") || "[]")
-    dreams.push(dreamToSave)
-    localStorage.setItem("dreams", JSON.stringify(dreams))
-    router.push(`/dream/${dream.id}`)
   }
 
   const translations = {
@@ -345,20 +356,30 @@ export default function DreamCapture() {
   } satisfies Record<'en' | 'ms', Record<string, string | Record<string, string>>>;
 
   const generateSummary = (): string => {
-    const t = translations[language].summaryTemplates as Record<string, string>;
-    const timeOfDay = translations[language][dream.timeOfDay.toLowerCase()] as string;
-    const emotion = translations[language][dream.emotion.toLowerCase()] as string;
-    const ending = dream.ending ? (translations[language][dream.ending.toLowerCase()] as string) : '';
+    const t = translations[language].summaryTemplates
+    const timeOfDayKey = dream.time_of_day.toLowerCase() as keyof typeof translations.en
+    const emotionKey = dream.emotion.toLowerCase() as keyof typeof translations.en
+    const endingKey = dream.ending ? dream.ending.toLowerCase() as keyof typeof translations.en : ''
+    
+    const timeOfDay = translations[language][timeOfDayKey]
+    const emotion = translations[language][emotionKey]
+    const ending = endingKey ? translations[language][endingKey] : ''
 
     return `${t.wasAt} ${dream.location} ${t.with} ${dream.people || t.noOne}. ${t.itWas} ${timeOfDay} ${t.and} ${dream.activity}. ${
-      dream.unusualEvents.occurred ? `${t.somethingUnusual} ${dream.unusualEvents.description}.` : ""
+      dream.unusual_events.occurred ? `${t.somethingUnusual} ${dream.unusual_events.description}.` : ""
     } ${dream.symbols ? `${t.sawSymbols} ${dream.symbols}.` : ""} ${t.iFelt} ${emotion}. ${t.theDream} ${ending}${
-      dream.finalMoments ? `. ${t.lastThing} ${dream.finalMoments}.` : "."
+      dream.final_moments ? `. ${t.lastThing} ${dream.final_moments}.` : "."
     }`
   }
 
   const getSummaryText = (): string => {
     return dream.summary || generateSummary();
+  }
+
+  // Helper function to safely get translation string
+  const getTranslation = (key: keyof typeof translations.en): string => {
+    const value = translations[language][key]
+    return typeof value === 'string' ? value : ''
   }
 
   return (
@@ -373,6 +394,13 @@ export default function DreamCapture() {
           <div className="w-10"></div>
         </div>
       </header>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg mx-4 mt-4">
+          {error}
+        </div>
+      )}
 
       {/* Main Form */}
       <main className="container mx-auto px-4 py-6 space-y-6">
@@ -419,12 +447,12 @@ export default function DreamCapture() {
             {["Morning", "Afternoon", "Night", "Unknown"].map((time) => (
               <button
                 key={time}
-                onClick={() => setDream({ ...dream, timeOfDay: time as DreamEntry["timeOfDay"] })}
+                onClick={() => setDream({ ...dream, time_of_day: time as Dream['time_of_day'] })}
                 className={`p-2 rounded-lg text-sm ${
-                  dream.timeOfDay === time ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
+                  dream.time_of_day === time ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
                 }`}
               >
-                {translations[language][time.toLowerCase() as keyof typeof translations['en']]}
+                {getTranslation(time.toLowerCase() as keyof typeof translations.en)}
               </button>
             ))}
           </div>
@@ -446,29 +474,29 @@ export default function DreamCapture() {
           <label className="block text-sm font-medium">{translations[language].anythingUnusual}</label>
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => setDream({ ...dream, unusualEvents: { ...dream.unusualEvents, occurred: true } })}
+              onClick={() => setDream({ ...dream, unusual_events: { ...dream.unusual_events, occurred: true } })}
               className={`p-2 rounded-lg ${
-                dream.unusualEvents.occurred ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
+                dream.unusual_events.occurred ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
               }`}
             >
               {translations[language].yes}
             </button>
             <button
-              onClick={() => setDream({ ...dream, unusualEvents: { occurred: false, description: "" } })}
+              onClick={() => setDream({ ...dream, unusual_events: { occurred: false, description: "" } })}
               className={`p-2 rounded-lg ${
-                !dream.unusualEvents.occurred ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
+                !dream.unusual_events.occurred ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
               }`}
             >
               {translations[language].no}
             </button>
           </div>
-          {dream.unusualEvents.occurred && (
+          {dream.unusual_events.occurred && (
             <textarea
-              value={dream.unusualEvents.description}
+              value={dream.unusual_events.description}
               onChange={(e) =>
                 setDream({
                   ...dream,
-                  unusualEvents: { ...dream.unusualEvents, description: e.target.value },
+                  unusual_events: { ...dream.unusual_events, description: e.target.value },
                 })
               }
               placeholder={translations[language].describeWhat}
@@ -496,12 +524,12 @@ export default function DreamCapture() {
             {["Happy", "Scared", "Confused", "Peaceful", "Anxious", "Excited"].map((emotion) => (
               <button
                 key={emotion}
-                onClick={() => setDream({ ...dream, emotion: emotion as DreamEntry["emotion"] })}
+                onClick={() => setDream({ ...dream, emotion: emotion as Dream['emotion'] })}
                 className={`p-2 rounded-lg ${
                   dream.emotion === emotion ? "bg-white text-black" : "bg-zinc-900 border border-zinc-800"
                 }`}
               >
-                {translations[language][emotion.toLowerCase() as keyof typeof translations['en']]}
+                {getTranslation(emotion.toLowerCase() as keyof typeof translations.en)}
               </button>
             ))}
           </div>
@@ -528,8 +556,8 @@ export default function DreamCapture() {
           <label className="block text-sm font-medium">{translations[language].lastThingBeforeWaking}</label>
           <input
             type="text"
-            value={dream.finalMoments}
-            onChange={(e) => setDream({ ...dream, finalMoments: e.target.value })}
+            value={dream.final_moments}
+            onChange={(e) => setDream({ ...dream, final_moments: e.target.value })}
             placeholder={translations[language].lastThingPlaceholder}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800 placeholder-zinc-500"
           />

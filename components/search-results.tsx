@@ -2,19 +2,10 @@ import Link from "next/link"
 import { DreamCard } from "./dream-card"
 import { MeteorCard } from "./ui/meteor-card"
 import { useState, useEffect } from "react"
-
-interface DreamEntry {
-  id: string
-  title: string
-  date: string
-  location: string
-  emotion: string
-  summary: string
-  people?: string
-}
+import type { Dream } from "@/utils/supabase/dreams"
 
 interface SearchResultsProps {
-  dreams: DreamEntry[]
+  dreams: Dream[]
   searchTerm: string
   activeFilters: string[]
   selectedEmotion: string | null
@@ -36,7 +27,7 @@ const emotionMapping = {
   "cemas": "anxious",
   "keliru": "confused",
   "tenang": "peaceful"
-};
+} as const;
 
 // Helper function to map any emotion string to a valid Emotion type
 const mapToValidEmotion = (emotion: string): "happy" | "scared" | "confused" | "peaceful" | "anxious" | "excited" => {
@@ -45,7 +36,7 @@ const mapToValidEmotion = (emotion: string): "happy" | "scared" | "confused" | "
   
   // Check if it's a Bahasa Melayu emotion and map it to English
   if (emotionMapping[lowerEmotion as keyof typeof emotionMapping]) {
-    return emotionMapping[lowerEmotion as keyof typeof emotionMapping] as "happy" | "scared" | "confused" | "peaceful" | "anxious" | "excited";
+    return emotionMapping[lowerEmotion as keyof typeof emotionMapping];
   }
   
   // Check if it's a valid English emotion
