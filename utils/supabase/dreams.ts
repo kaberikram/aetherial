@@ -15,16 +15,18 @@ export interface Dream {
   }
   symbols: string
   emotion: "Happy" | "Scared" | "Confused" | "Peaceful" | "Anxious" | "Excited"
+  kategori_mimpi: "Daytime Carryover Dream" | "Random Dream" | "Carried Dream" | "Learning Dream" | "Receiving Dream" | "Message Dream" | "Disturbance Dream" | "Blank Dream"
+  keadaan_mimpi: "Watching a Screen" | "Character in Dream" | "Both Watching and Being a Character"
+  jenis_mimpi: "Normal Dream" | "Aware but Can't Control" | "Mimpi Sedar" | "Mimpi Ambang" | "Mimpi Jelas"
   ending: string
   final_moments: string
   summary: string
-  created_at?: string
-  updated_at?: string
+  created_at: string
+  updated_at: string
 }
 
-export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
+export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Dream> {
   const supabase = createClient()
-  
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -35,14 +37,30 @@ export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created
     .from('dreams')
     .insert([
       {
-        ...dream,
         user_id: user.id,
+        title: dream.title,
+        date: dream.date,
+        location: dream.location,
+        people: dream.people,
+        time_of_day: dream.time_of_day,
+        activity: dream.activity,
+        unusual_events: dream.unusual_events,
+        symbols: dream.symbols,
+        emotion: dream.emotion,
+        kategori_mimpi: dream.kategori_mimpi,
+        keadaan_mimpi: dream.keadaan_mimpi,
+        jenis_mimpi: dream.jenis_mimpi,
+        ending: dream.ending,
+        final_moments: dream.final_moments,
+        summary: dream.summary,
       },
     ])
     .select()
     .single()
 
   if (error) throw error
+  if (!data) throw new Error('Failed to create dream')
+
   return data
 }
 

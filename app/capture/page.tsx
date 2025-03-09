@@ -9,24 +9,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { createDream } from "@/utils/supabase/dreams"
 import type { Dream } from "@/utils/supabase/dreams"
 
-interface DreamEntry {
-  id: string
-  title: string
-  date: string
-  location: string
-  people: string
-  timeOfDay: "Morning" | "Afternoon" | "Night" | "Unknown"
-  activity: string
-  unusualEvents: {
-    occurred: boolean
-    description: string
-  }
-  symbols: string
-  emotion: "Happy" | "Scared" | "Confused" | "Peaceful" | "Anxious" | "Excited"
-  ending: string
-  finalMoments: string
-  summary: string
-}
+interface DreamEntry extends Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'> {}
 
 interface Translations {
   en: {
@@ -47,6 +30,9 @@ interface Translations {
     seeSymbols: string
     symbolsPlaceholder: string
     howDidYouFeel: string
+    dreamCategory: string
+    dreamState: string
+    dreamType: string
     morning: string
     afternoon: string
     night: string
@@ -68,6 +54,28 @@ interface Translations {
     dreamSummary: string
     saveDream: string
     saveAndVisualize: string
+    dreamCategories: {
+      daytimeCarryover: string
+      random: string
+      carried: string
+      learning: string
+      receiving: string
+      message: string
+      disturbance: string
+      blank: string
+    }
+    dreamStates: {
+      watching: string
+      character: string
+      both: string
+    }
+    dreamTypes: {
+      normal: string
+      awareButCantControl: string
+      mimpiSedar: string
+      mimpiAmbang: string
+      mimpiJelas: string
+    }
     summaryTemplates: {
       wasAt: string
       with: string
@@ -79,6 +87,9 @@ interface Translations {
       iFelt: string
       theDream: string
       lastThing: string
+      dreamCategory: string
+      dreamState: string
+      dreamType: string
     }
   }
   ms: {
@@ -99,6 +110,9 @@ interface Translations {
     seeSymbols: string
     symbolsPlaceholder: string
     howDidYouFeel: string
+    dreamCategory: string
+    dreamState: string
+    dreamType: string
     morning: string
     afternoon: string
     night: string
@@ -120,6 +134,28 @@ interface Translations {
     dreamSummary: string
     saveDream: string
     saveAndVisualize: string
+    dreamCategories: {
+      daytimeCarryover: string
+      random: string
+      carried: string
+      learning: string
+      receiving: string
+      message: string
+      disturbance: string
+      blank: string
+    }
+    dreamStates: {
+      watching: string
+      character: string
+      both: string
+    }
+    dreamTypes: {
+      normal: string
+      awareButCantControl: string
+      mimpiSedar: string
+      mimpiAmbang: string
+      mimpiJelas: string
+    }
     summaryTemplates: {
       wasAt: string
       with: string
@@ -131,6 +167,9 @@ interface Translations {
       iFelt: string
       theDream: string
       lastThing: string
+      dreamCategory: string
+      dreamState: string
+      dreamType: string
     }
   }
 }
@@ -152,6 +191,9 @@ export default function DreamCapture() {
     },
     symbols: "",
     emotion: "Happy",
+    kategori_mimpi: "Random Dream",
+    keadaan_mimpi: "Character in Dream",
+    jenis_mimpi: "Normal Dream",
     ending: "",
     final_moments: "",
     summary: "",
@@ -267,6 +309,9 @@ export default function DreamCapture() {
       seeSymbols: "Did you see any symbols?",
       symbolsPlaceholder: "A key, a door, an animal...",
       howDidYouFeel: "How did you feel?",
+      dreamCategory: "Dream Category",
+      dreamState: "Dream State",
+      dreamType: "Dream Type",
       morning: "Morning",
       afternoon: "Afternoon",
       night: "Night",
@@ -288,6 +333,28 @@ export default function DreamCapture() {
       dreamSummary: "Dream Summary",
       saveDream: "Save Dream",
       saveAndVisualize: "Save & Visualize Dream",
+      dreamCategories: {
+        daytimeCarryover: "Daytime Carryover Dream",
+        random: "Random Dream",
+        carried: "Carried Dream",
+        learning: "Learning Dream",
+        receiving: "Receiving Dream",
+        message: "Message Dream",
+        disturbance: "Disturbance Dream",
+        blank: "Blank Dream"
+      },
+      dreamStates: {
+        watching: "Watching a Screen",
+        character: "Character in Dream",
+        both: "Both Watching and Being a Character"
+      },
+      dreamTypes: {
+        normal: "Normal Dream",
+        awareButCantControl: "Aware but Can't Control",
+        mimpiSedar: "Mimpi Sedar",
+        mimpiAmbang: "Mimpi Ambang",
+        mimpiJelas: "Mimpi Jelas"
+      },
       summaryTemplates: {
         wasAt: "I was at",
         with: "with",
@@ -297,8 +364,11 @@ export default function DreamCapture() {
         somethingUnusual: "Something unusual happened:",
         sawSymbols: "I saw symbols like",
         iFelt: "I felt",
-        theDream: "The dream",
-        lastThing: "The last thing I remember was"
+        theDream: "The dream ended",
+        lastThing: "The last thing I remember was",
+        dreamCategory: "This was a",
+        dreamState: "In this dream, I was",
+        dreamType: "It was a"
       }
     },
     ms: {
@@ -319,6 +389,9 @@ export default function DreamCapture() {
       seeSymbols: "Adakah anda melihat sebarang simbol?",
       symbolsPlaceholder: "Kunci, pintu, haiwan...",
       howDidYouFeel: "Bagaimana perasaan anda?",
+      dreamCategory: "Kategori Mimpi",
+      dreamState: "Keadaan Mimpi",
+      dreamType: "Jenis Mimpi",
       morning: "Pagi",
       afternoon: "Tengah Hari",
       night: "Malam",
@@ -340,6 +413,28 @@ export default function DreamCapture() {
       dreamSummary: "Ringkasan Mimpi",
       saveDream: "Simpan Mimpi",
       saveAndVisualize: "Simpan & Visualkan Mimpi",
+      dreamCategories: {
+        daytimeCarryover: "Mimpi Bawaan Sianghari",
+        random: "Mimpi Merapu",
+        carried: "Mimpi Di Bawa",
+        learning: "Mimpi Belajar",
+        receiving: "Mimpi Dapat Benda",
+        message: "Mimpi Pesanan",
+        disturbance: "Mimpi Gangguan",
+        blank: "Mimpi Blank (Kosong)"
+      },
+      dreamStates: {
+        watching: "Tengok Skrin",
+        character: "Watak Dalam Mimpi",
+        both: "Tengok Skrin Dan Watak Sekali"
+      },
+      dreamTypes: {
+        normal: "Mimpi Biasa",
+        awareButCantControl: "Sedar tapi Tidak Boleh Mengawal",
+        mimpiSedar: "Mimpi Sedar",
+        mimpiAmbang: "Mimpi Ambang",
+        mimpiJelas: "Mimpi Jelas"
+      },
       summaryTemplates: {
         wasAt: "Saya berada di",
         with: "bersama",
@@ -349,25 +444,58 @@ export default function DreamCapture() {
         somethingUnusual: "Sesuatu yang luar biasa berlaku:",
         sawSymbols: "Saya nampak simbol seperti",
         iFelt: "Saya berasa",
-        theDream: "Mimpi itu",
-        lastThing: "Perkara terakhir yang saya ingat ialah"
+        theDream: "Mimpi itu berakhir",
+        lastThing: "Perkara terakhir yang saya ingat ialah",
+        dreamCategory: "Ini adalah",
+        dreamState: "Dalam mimpi ini, saya",
+        dreamType: "Ia adalah"
       }
     }
-  } satisfies Record<'en' | 'ms', Record<string, string | Record<string, string>>>;
+  } satisfies Record<'en' | 'ms', Record<string, string | Record<string, string>>>
 
   const generateSummary = (): string => {
     const t = translations[language].summaryTemplates
     const timeOfDayKey = dream.time_of_day.toLowerCase() as keyof typeof translations.en
     const emotionKey = dream.emotion.toLowerCase() as keyof typeof translations.en
-    const endingKey = dream.ending ? dream.ending.toLowerCase() as keyof typeof translations.en : ''
     
     const timeOfDay = translations[language][timeOfDayKey]
     const emotion = translations[language][emotionKey]
-    const ending = endingKey ? translations[language][endingKey] : ''
+
+    // Create reverse mappings for translations
+    const dreamCategoryMap = {
+      "Daytime Carryover Dream": translations[language].dreamCategories.daytimeCarryover,
+      "Random Dream": translations[language].dreamCategories.random,
+      "Carried Dream": translations[language].dreamCategories.carried,
+      "Learning Dream": translations[language].dreamCategories.learning,
+      "Receiving Dream": translations[language].dreamCategories.receiving,
+      "Message Dream": translations[language].dreamCategories.message,
+      "Disturbance Dream": translations[language].dreamCategories.disturbance,
+      "Blank Dream": translations[language].dreamCategories.blank
+    }
+
+    const dreamStateMap = {
+      "Watching a Screen": translations[language].dreamStates.watching,
+      "Character in Dream": translations[language].dreamStates.character,
+      "Both Watching and Being a Character": translations[language].dreamStates.both
+    }
+
+    const dreamTypeMap = {
+      "Normal Dream": translations[language].dreamTypes.normal,
+      "Aware but Can't Control": translations[language].dreamTypes.awareButCantControl,
+      "Mimpi Sedar": translations[language].dreamTypes.mimpiSedar,
+      "Mimpi Ambang": translations[language].dreamTypes.mimpiAmbang,
+      "Mimpi Jelas": translations[language].dreamTypes.mimpiJelas
+    }
+
+    // Get translated values using the maps
+    const kategoriMimpi = dreamCategoryMap[dream.kategori_mimpi] || dream.kategori_mimpi
+    const keadaanMimpi = dreamStateMap[dream.keadaan_mimpi] || dream.keadaan_mimpi
+    const jenisMimpi = dreamTypeMap[dream.jenis_mimpi] || dream.jenis_mimpi
+    const ending = dream.ending ? translations[language][dream.ending as keyof typeof translations.en] : ''
 
     return `${t.wasAt} ${dream.location} ${t.with} ${dream.people || t.noOne}. ${t.itWas} ${timeOfDay} ${t.and} ${dream.activity}. ${
       dream.unusual_events.occurred ? `${t.somethingUnusual} ${dream.unusual_events.description}.` : ""
-    } ${dream.symbols ? `${t.sawSymbols} ${dream.symbols}.` : ""} ${t.iFelt} ${emotion}. ${t.theDream} ${ending}${
+    } ${dream.symbols ? `${t.sawSymbols} ${dream.symbols}.` : ""} ${t.iFelt} ${emotion}. ${t.dreamCategory} ${kategoriMimpi}. ${t.dreamState} ${keadaanMimpi}. ${t.dreamType} ${jenisMimpi}. ${t.theDream} ${ending}${
       dream.final_moments ? `. ${t.lastThing} ${dream.final_moments}.` : "."
     }`
   }
@@ -381,6 +509,14 @@ export default function DreamCapture() {
     const value = translations[language][key]
     return typeof value === 'string' ? value : ''
   }
+
+  const dreamTypeOptions = [
+    { value: "Normal Dream", label: translations[language].dreamTypes.normal },
+    { value: "Aware but Can't Control", label: translations[language].dreamTypes.awareButCantControl },
+    { value: "Mimpi Sedar", label: translations[language].dreamTypes.mimpiSedar },
+    { value: "Mimpi Ambang", label: translations[language].dreamTypes.mimpiAmbang },
+    { value: "Mimpi Jelas", label: translations[language].dreamTypes.mimpiJelas }
+  ]
 
   return (
     <div className="min-h-screen bg-black text-white pb-24 capture-page">
@@ -535,7 +671,56 @@ export default function DreamCapture() {
           </div>
         </div>
 
-        {/* Ending */}
+        {/* Dream Category */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">{translations[language].dreamCategory}</label>
+          <select
+            value={dream.kategori_mimpi}
+            onChange={(e) => setDream({ ...dream, kategori_mimpi: e.target.value as Dream['kategori_mimpi'] })}
+            className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800"
+          >
+            <option value="Daytime Carryover Dream">{translations[language].dreamCategories.daytimeCarryover}</option>
+            <option value="Random Dream">{translations[language].dreamCategories.random}</option>
+            <option value="Carried Dream">{translations[language].dreamCategories.carried}</option>
+            <option value="Learning Dream">{translations[language].dreamCategories.learning}</option>
+            <option value="Receiving Dream">{translations[language].dreamCategories.receiving}</option>
+            <option value="Message Dream">{translations[language].dreamCategories.message}</option>
+            <option value="Disturbance Dream">{translations[language].dreamCategories.disturbance}</option>
+            <option value="Blank Dream">{translations[language].dreamCategories.blank}</option>
+          </select>
+        </div>
+
+        {/* Dream State */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">{translations[language].dreamState}</label>
+          <select
+            value={dream.keadaan_mimpi}
+            onChange={(e) => setDream({ ...dream, keadaan_mimpi: e.target.value as Dream['keadaan_mimpi'] })}
+            className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800"
+          >
+            <option value="Watching a Screen">{translations[language].dreamStates.watching}</option>
+            <option value="Character in Dream">{translations[language].dreamStates.character}</option>
+            <option value="Both Watching and Being a Character">{translations[language].dreamStates.both}</option>
+          </select>
+        </div>
+
+        {/* Dream Type */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">{translations[language].dreamType}</label>
+          <select
+            value={dream.jenis_mimpi}
+            onChange={(e) => setDream({ ...dream, jenis_mimpi: e.target.value as Dream['jenis_mimpi'] })}
+            className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800"
+          >
+            {dreamTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Dream Ending */}
         <div className="space-y-2">
           <label className="block text-sm font-medium">{translations[language].howDidDreamEnd}</label>
           <select
@@ -544,10 +729,10 @@ export default function DreamCapture() {
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800"
           >
             <option value="">{translations[language].selectOption}</option>
-            <option value="Abruptly">{translations[language].abruptly}</option>
-            <option value="Slowly">{translations[language].slowly}</option>
-            <option value="Woke Up Suddenly">{translations[language].wokeUpSuddenly}</option>
-            <option value="Faded Away">{translations[language].fadedAway}</option>
+            <option value="abruptly">{translations[language].abruptly}</option>
+            <option value="slowly">{translations[language].slowly}</option>
+            <option value="wokeUpSuddenly">{translations[language].wokeUpSuddenly}</option>
+            <option value="fadedAway">{translations[language].fadedAway}</option>
           </select>
         </div>
 
