@@ -36,7 +36,21 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Aetherial'
-  }
+  },
+  metadataBase: new URL('https://www.aetherialdream.com'),
+  openGraph: {
+    title: 'Dream Explorer',
+    description: 'Explore your dreams in an immersive 3D space',
+    url: 'https://www.aetherialdream.com',
+    siteName: 'Aetherial Dream',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Dream Explorer',
+    description: 'Explore your dreams in an immersive 3D space',
+  },
 }
 
 export default function RootLayout({

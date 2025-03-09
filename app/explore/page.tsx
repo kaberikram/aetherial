@@ -393,26 +393,29 @@ const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls,
   touchControls: { active: boolean, x: number, y: number },
   setTouchControls: (controls: { active: boolean, x: number, y: number }) => void
 }) => {
+  // Add canvas ref with correct type
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  
   // Detect if device is mobile
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(false)
   
   useEffect(() => {
     // Only run on client side
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return
     
     // Check if device is mobile
     const checkMobile = () => {
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
-      setIsMobile(isMobileDevice);
-    };
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase())
+      setIsMobile(isMobileDevice)
+    }
     
-    checkMobile();
+    checkMobile()
     
     // Update on resize (for devices that can switch between desktop/mobile modes)
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
   
   // Safely render the scene with error boundaries
   return (
@@ -424,8 +427,10 @@ const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls,
         </div>
       </div>}>
         <Canvas
+          ref={canvasRef}
           shadows
           style={{ width: '100vw', height: '100vh' }}
+          gl={{ preserveDrawingBuffer: true }}
           camera={{ 
             position: [0, 8, 12], 
             fov: 60, 
@@ -455,6 +460,9 @@ const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls,
           </Suspense>
         </Canvas>
       </ErrorBoundary>
+      
+      {/* Share Button with canvas ref */}
+      <ShareButton canvasRef={canvasRef} />
       
       {/* Mobile joystick control */}
       <Joystick setTouchControls={setTouchControls} />
@@ -1290,52 +1298,231 @@ function FloatingAdSphere({ position, index, id, status, advertiser, url }: {
   )
 }
 
-// Preload THREE.js resources
-const preloadThreeResources = () => {
-  // Only run on client side
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return;
+// Share button component
+function ShareButton({ canvasRef }: { canvasRef: React.RefObject<HTMLCanvasElement | null> }) {
+  const [isSharing, setIsSharing] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isCopied, setIsCopied] = useState(false)
+  
+  const captureCanvas = async () => {
+    try {
+      const canvas = canvasRef.current
+      if (!canvas) throw new Error('Canvas not found')
+
+      // Get the WebGL context
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+      if (!gl) throw new Error('WebGL context not found')
+
+      // Force a render to ensure the latest frame is captured
+      gl.flush()
+      gl.finish()
+
+      // Use canvas.toDataURL for more reliable WebGL capture
+      const dataUrl = canvas.toDataURL('image/png', 1.0)
+      
+      // Convert data URL to Blob
+      const response = await fetch(dataUrl)
+      const blob = await response.blob()
+      
+      return blob
+    } catch (err) {
+      console.error('Error capturing canvas:', err)
+      throw err
+    }
+  }
+
+  const handleCapture = async () => {
+    try {
+      setIsSharing(true)
+      setError(null)
+      const blob = await captureCanvas()
+      const url = URL.createObjectURL(blob)
+      setPreviewUrl(url)
+      setShowPreview(true)
+    } catch (error) {
+      console.error('Error capturing view:', error)
+      setError('Failed to capture view. Please try again.')
+    } finally {
+      setIsSharing(false)
+    }
   }
   
-  try {
-    // Create a hidden canvas to initialize THREE.js
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';
-    canvas.style.width = '1px';
-    canvas.style.height = '1px';
-    canvas.style.opacity = '0';
-    canvas.style.pointerEvents = 'none';
-    document.body.appendChild(canvas);
-    
-    // Initialize a minimal THREE scene to trigger resource loading
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
-    renderer.setSize(1, 1);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    
-    // Add a simple mesh to force shader compilation
-    const geometry = new THREE.PlaneGeometry(1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-    
-    // Render once to initialize
-    renderer.render(scene, camera);
-    
-    // Clean up after a short delay
-    setTimeout(() => {
-      if (document.body.contains(canvas)) {
-        document.body.removeChild(canvas);
+  const handleShare = async (platform: 'twitter' | 'facebook' | 'download' | 'copy') => {
+    try {
+      const blob = await captureCanvas()
+      
+      // For download, handle directly
+      if (platform === 'download') {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'dream-explorer.png'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        return
       }
-      renderer.dispose();
-      geometry.dispose();
-      material.dispose();
-    }, 1000);
-  } catch (error) {
-    console.error("Error in preloadThreeResources:", error);
-    // Silently fail - this is just an optimization
+
+      // For copy image
+      if (platform === 'copy') {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'image/png': blob
+            })
+          ])
+          setIsCopied(true)
+        } catch (error) {
+          console.error('Failed to copy image:', error)
+          setError('Failed to copy image. Try downloading instead.')
+        }
+        return
+      }
+
+      // Only use Web Share API on mobile devices
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      
+      if (isMobile && navigator.share) {
+        try {
+          const file = new File([blob], 'dream-explorer.png', { type: 'image/png' })
+          await navigator.share({
+            title: 'Dream Explorer',
+            text: 'Exploring dreams in the Dream Explorer!',
+            url: 'https://www.aetherialdream.com',
+            files: [file]
+          })
+          return
+        } catch (error) {
+          console.log('Fallback to regular sharing:', error)
+        }
+      }
+
+      // Regular social media sharing for desktop or if Web Share API fails
+      const shareText = encodeURIComponent('Exploring my dream collection in the Dream Explorer. Each light represents a memory, a story, an experience. ✨🌙')
+      const shareUrl = encodeURIComponent('https://www.aetherialdream.com')
+      
+      switch (platform) {
+        case 'twitter':
+          window.open(`https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}&hashtags=DreamJournal,Dreams,AetherialDream`, '_blank')
+          break
+      }
+    } catch (error) {
+      console.error('Error sharing:', error)
+    }
   }
-};
+
+  // Cleanup preview URL when modal is closed
+  useEffect(() => {
+    if (!showPreview && previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
+    }
+  }, [showPreview, previewUrl])
+  
+  return (
+    <>
+      <button
+        onClick={handleCapture}
+        disabled={isSharing}
+        className="fixed top-4 right-4 z-20 flex items-center gap-2 px-3 py-1.5 bg-black/90 border border-zinc-800 rounded-full hover:bg-black/70 transition-colors disabled:opacity-50"
+      >
+        {isSharing ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs">Capturing...</span>
+          </>
+        ) : (
+          <>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            <span className="text-xs">Share</span>
+          </>
+        )}
+      </button>
+
+      {/* Preview Modal */}
+      {showPreview && previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-zinc-900 rounded-lg shadow-xl max-w-lg w-full">
+            <div className="p-4 border-b border-zinc-800">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Share Your View</h3>
+                <button 
+                  onClick={() => {
+                    setShowPreview(false)
+                    setIsCopied(false)
+                  }}
+                  className="text-zinc-400 hover:text-white"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              {/* Preview Image */}
+              <div className="relative aspect-video rounded-lg overflow-hidden mb-4 bg-zinc-800">
+                <img 
+                  src={previewUrl} 
+                  alt="Dream Explorer View" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              
+              {/* Copy Image Button */}
+              <button
+                onClick={() => handleShare('copy')}
+                className="w-full mb-4 flex items-center justify-center gap-2 p-2 rounded bg-zinc-800 hover:bg-zinc-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                <span className="text-sm">{isCopied ? 'Image Copied!' : 'Copy Image'}</span>
+              </button>
+              
+              <div className="text-xs text-zinc-400 mb-4">
+                <p className="text-center mb-2">To share on X:</p>
+                <ol className="list-decimal list-inside space-y-1 pl-2">
+                  <li>Click "Copy Image" above</li>
+                  <li>Click the X button below</li>
+                  <li>Paste (Ctrl/Cmd+V) the image in your tweet</li>
+                </ol>
+              </div>
+              
+              {/* Share Options */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleShare('twitter')}
+                  className="flex items-center justify-center p-2 rounded bg-black hover:bg-zinc-900 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </button>
+                
+                <button
+                  onClick={() => handleShare('download')}
+                  className="flex items-center justify-center gap-2 p-2 rounded bg-zinc-700 hover:bg-zinc-600 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                  </svg>
+                  <span className="text-sm">Download</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
 
 // Main scene component that handles loading
 function DreamExplorer() {
@@ -1343,7 +1530,7 @@ function DreamExplorer() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [explorerPosition, setExplorerPosition] = useState({ x: 0, z: 0 })
-  const [showInstructions, setShowInstructions] = useState(true)
+  const [showInstructions, setShowInstructions] = useState(false)
   const [touchControls, setTouchControls] = useState({ active: false, x: 0, y: 0 })
 
   useEffect(() => {
