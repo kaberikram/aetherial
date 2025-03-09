@@ -72,9 +72,9 @@ interface Translations {
     dreamTypes: {
       normal: string
       awareButCantControl: string
-      mimpiSedar: string
-      mimpiAmbang: string
-      mimpiJelas: string
+      lucid: string
+      liminal: string
+      vivid: string
     }
     summaryTemplates: {
       wasAt: string
@@ -90,6 +90,7 @@ interface Translations {
       dreamCategory: string
       dreamState: string
       dreamType: string
+      dreamEnded: string
     }
   }
   ms: {
@@ -152,9 +153,9 @@ interface Translations {
     dreamTypes: {
       normal: string
       awareButCantControl: string
-      mimpiSedar: string
-      mimpiAmbang: string
-      mimpiJelas: string
+      lucid: string
+      liminal: string
+      vivid: string
     }
     summaryTemplates: {
       wasAt: string
@@ -170,6 +171,7 @@ interface Translations {
       dreamCategory: string
       dreamState: string
       dreamType: string
+      dreamEnded: string
     }
   }
 }
@@ -194,7 +196,7 @@ export default function DreamCapture() {
     kategori_mimpi: "Random Dream",
     keadaan_mimpi: "Character in Dream",
     jenis_mimpi: "Normal Dream",
-    ending: "",
+    ending: null,
     final_moments: "",
     summary: "",
   })
@@ -263,7 +265,9 @@ export default function DreamCapture() {
       router.push("/home")
     } catch (error) {
       console.error('Failed to save dream. Full error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+      const errorMessage = error instanceof Error 
+        ? `${error.message}\n${JSON.stringify(error, null, 2)}` 
+        : `Unknown error: ${JSON.stringify(error, null, 2)}`
       setError(errorMessage)
     }
   }
@@ -351,9 +355,9 @@ export default function DreamCapture() {
       dreamTypes: {
         normal: "Normal Dream",
         awareButCantControl: "Aware but Can't Control",
-        mimpiSedar: "Mimpi Sedar",
-        mimpiAmbang: "Mimpi Ambang",
-        mimpiJelas: "Mimpi Jelas"
+        lucid: "Lucid Dream",
+        liminal: "Liminal Dream",
+        vivid: "Vivid Dream"
       },
       summaryTemplates: {
         wasAt: "I was at",
@@ -364,11 +368,12 @@ export default function DreamCapture() {
         somethingUnusual: "Something unusual happened:",
         sawSymbols: "I saw symbols like",
         iFelt: "I felt",
-        theDream: "The dream ended",
+        theDream: "The dream",
         lastThing: "The last thing I remember was",
         dreamCategory: "This was a",
         dreamState: "In this dream, I was",
-        dreamType: "It was a"
+        dreamType: "It was a",
+        dreamEnded: "ended"
       }
     },
     ms: {
@@ -431,9 +436,9 @@ export default function DreamCapture() {
       dreamTypes: {
         normal: "Mimpi Biasa",
         awareButCantControl: "Sedar tapi Tidak Boleh Mengawal",
-        mimpiSedar: "Mimpi Sedar",
-        mimpiAmbang: "Mimpi Ambang",
-        mimpiJelas: "Mimpi Jelas"
+        lucid: "Mimpi Sedar",
+        liminal: "Mimpi Ambang",
+        vivid: "Mimpi Jelas"
       },
       summaryTemplates: {
         wasAt: "Saya berada di",
@@ -444,11 +449,12 @@ export default function DreamCapture() {
         somethingUnusual: "Sesuatu yang luar biasa berlaku:",
         sawSymbols: "Saya nampak simbol seperti",
         iFelt: "Saya berasa",
-        theDream: "Mimpi itu berakhir",
+        theDream: "Mimpi itu",
         lastThing: "Perkara terakhir yang saya ingat ialah",
         dreamCategory: "Ini adalah",
         dreamState: "Dalam mimpi ini, saya",
-        dreamType: "Ia adalah"
+        dreamType: "Ia adalah",
+        dreamEnded: "berakhir"
       }
     }
   } satisfies Record<'en' | 'ms', Record<string, string | Record<string, string>>>
@@ -482,9 +488,9 @@ export default function DreamCapture() {
     const dreamTypeMap = {
       "Normal Dream": translations[language].dreamTypes.normal,
       "Aware but Can't Control": translations[language].dreamTypes.awareButCantControl,
-      "Mimpi Sedar": translations[language].dreamTypes.mimpiSedar,
-      "Mimpi Ambang": translations[language].dreamTypes.mimpiAmbang,
-      "Mimpi Jelas": translations[language].dreamTypes.mimpiJelas
+      "Lucid Dream": translations[language].dreamTypes.lucid,
+      "Liminal Dream": translations[language].dreamTypes.liminal,
+      "Vivid Dream": translations[language].dreamTypes.vivid
     }
 
     // Get translated values using the maps
@@ -495,7 +501,7 @@ export default function DreamCapture() {
 
     return `${t.wasAt} ${dream.location} ${t.with} ${dream.people || t.noOne}. ${t.itWas} ${timeOfDay} ${t.and} ${dream.activity}. ${
       dream.unusual_events.occurred ? `${t.somethingUnusual} ${dream.unusual_events.description}.` : ""
-    } ${dream.symbols ? `${t.sawSymbols} ${dream.symbols}.` : ""} ${t.iFelt} ${emotion}. ${t.dreamCategory} ${kategoriMimpi}. ${t.dreamState} ${keadaanMimpi}. ${t.dreamType} ${jenisMimpi}. ${t.theDream} ${ending}${
+    } ${dream.symbols ? `${t.sawSymbols} ${dream.symbols}.` : ""} ${t.iFelt} ${emotion}. ${t.dreamCategory} ${kategoriMimpi}. ${t.dreamState} ${keadaanMimpi}. ${t.dreamType} ${jenisMimpi}. ${t.theDream} ${ending ? `${t.dreamEnded} ${ending}` : ""}${
       dream.final_moments ? `. ${t.lastThing} ${dream.final_moments}.` : "."
     }`
   }
@@ -513,9 +519,9 @@ export default function DreamCapture() {
   const dreamTypeOptions = [
     { value: "Normal Dream", label: translations[language].dreamTypes.normal },
     { value: "Aware but Can't Control", label: translations[language].dreamTypes.awareButCantControl },
-    { value: "Mimpi Sedar", label: translations[language].dreamTypes.mimpiSedar },
-    { value: "Mimpi Ambang", label: translations[language].dreamTypes.mimpiAmbang },
-    { value: "Mimpi Jelas", label: translations[language].dreamTypes.mimpiJelas }
+    { value: "Lucid Dream", label: translations[language].dreamTypes.lucid },
+    { value: "Liminal Dream", label: translations[language].dreamTypes.liminal },
+    { value: "Vivid Dream", label: translations[language].dreamTypes.vivid }
   ]
 
   return (
@@ -724,15 +730,16 @@ export default function DreamCapture() {
         <div className="space-y-2">
           <label className="block text-sm font-medium">{translations[language].howDidDreamEnd}</label>
           <select
-            value={dream.ending}
-            onChange={(e) => setDream({ ...dream, ending: e.target.value })}
+            value={dream.ending || ""}
+            onChange={(e) => setDream({ 
+              ...dream, 
+              ending: e.target.value ? e.target.value as Dream['ending'] : null 
+            })}
             className="w-full p-3 rounded-lg bg-zinc-900 border border-zinc-800"
           >
             <option value="">{translations[language].selectOption}</option>
             <option value="abruptly">{translations[language].abruptly}</option>
             <option value="slowly">{translations[language].slowly}</option>
-            <option value="wokeUpSuddenly">{translations[language].wokeUpSuddenly}</option>
-            <option value="fadedAway">{translations[language].fadedAway}</option>
           </select>
         </div>
 

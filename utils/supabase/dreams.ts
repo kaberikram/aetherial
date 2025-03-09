@@ -17,8 +17,8 @@ export interface Dream {
   emotion: "Happy" | "Scared" | "Confused" | "Peaceful" | "Anxious" | "Excited"
   kategori_mimpi: "Daytime Carryover Dream" | "Random Dream" | "Carried Dream" | "Learning Dream" | "Receiving Dream" | "Message Dream" | "Disturbance Dream" | "Blank Dream"
   keadaan_mimpi: "Watching a Screen" | "Character in Dream" | "Both Watching and Being a Character"
-  jenis_mimpi: "Normal Dream" | "Aware but Can't Control" | "Mimpi Sedar" | "Mimpi Ambang" | "Mimpi Jelas"
-  ending: string
+  jenis_mimpi: "Normal Dream" | "Aware but Can't Control" | "Lucid Dream" | "Liminal Dream" | "Vivid Dream"
+  ending: "abruptly" | "slowly" | null
   final_moments: string
   summary: string
   created_at: string
@@ -32,6 +32,8 @@ export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created
   } = await supabase.auth.getUser()
 
   if (!user) throw new Error('User not authenticated')
+
+  console.log('Creating dream with data:', dream)
 
   const { data, error } = await supabase
     .from('dreams')
@@ -50,7 +52,7 @@ export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created
         kategori_mimpi: dream.kategori_mimpi,
         keadaan_mimpi: dream.keadaan_mimpi,
         jenis_mimpi: dream.jenis_mimpi,
-        ending: dream.ending,
+        ending: dream.ending || null,
         final_moments: dream.final_moments,
         summary: dream.summary,
       },
@@ -58,7 +60,10 @@ export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Supabase error:', error)
+    throw error
+  }
   if (!data) throw new Error('Failed to create dream')
 
   return data
