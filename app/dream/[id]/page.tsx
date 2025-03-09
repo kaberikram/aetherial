@@ -150,7 +150,7 @@ export default function DreamDetail() {
           <Link href="/home" className="p-2">
             <ArrowLeft className="h-6 w-6" />
           </Link>
-          <h1 className="text-lg font-semibold ml-2">{translations[language].dreamDetails}</h1>
+          <h1 className="text-lg font-semibold ml-2">{dream.title}</h1>
         </div>
       </header>
 
@@ -164,7 +164,7 @@ export default function DreamDetail() {
         </div>
 
         <div className="space-y-2 mb-8">
-          <h2 className="text-2xl font-bold md:text-3xl">{translations[language].dream} {formattedDate}</h2>
+          <h2 className="text-2xl font-bold md:text-3xl">{dream.title}</h2>
           <p className="text-zinc-400">{formattedDate}, {formattedTime}</p>
         </div>
 
@@ -219,4 +219,3 @@ export default function DreamDetail() {
     </div>
   )
 }
-
