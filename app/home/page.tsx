@@ -73,6 +73,7 @@ export default function Home() {
     en: {
       readyToCapture: "Ready to capture your dream?",
       newDreamEntry: "New Dream Entry",
+      exploreDreams: "Explore Dreams",
       recentDreams: "Recent Dreams",
       searchPlaceholder: "Search dreams...",
       filterByEmotion: "Filter by Emotion",
@@ -84,6 +85,7 @@ export default function Home() {
     ms: {
       readyToCapture: "Bersedia untuk merekod mimpi anda?",
       newDreamEntry: "Rekod Mimpi Baru",
+      exploreDreams: "Layari Mimpi",
       recentDreams: "Mimpi Terkini",
       searchPlaceholder: "Cari mimpi",
       filterByEmotion: "Tapis mengikut Emosi",
@@ -159,6 +161,16 @@ export default function Home() {
                 <GradientButton className="w-full flex items-center justify-center gap-2">
                   <PlusIcon className="h-5 w-5" />
                   {translations[language].newDreamEntry}
+                </GradientButton>
+              </Link>
+
+              <Link href="/explore" className="block w-full mt-3">
+                <GradientButton className="w-full flex items-center justify-center gap-2 gradient-button-variant">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" />
+                    <path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {translations[language].exploreDreams}
                 </GradientButton>
               </Link>
             </div>
