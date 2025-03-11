@@ -1,9 +1,50 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, type RefObject } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowRight, Moon, Brain, Sparkles, CloudLightning } from "lucide-react"
 import { GradientButton } from "@/components/ui/gradient-button"
+import { DreamSphere } from "@/components/dream-sphere"
+import { DREAM_LEVELS, type LevelInfo } from "@/components/dream-level-profile"
+import { Meteors } from "@/components/ui/meteors"
+import "./styles.css"
+
+// Get the actual color value for the aura
+const getAuraColorValue = (level: LevelInfo) => {
+  switch(level.auraColor) {
+    case 'red': return 'rgb(239, 68, 68)';
+    case 'orange': return 'rgb(249, 115, 22)';
+    case 'white': return 'rgb(255, 255, 255)';
+    case 'green': return 'rgb(34, 197, 94)';
+    case 'blue': return 'rgb(59, 130, 246)';
+    case 'indigo': return 'rgb(99, 102, 241)';
+    case 'purple': return 'rgb(168, 85, 247)';
+    case 'gold': return 'rgb(255, 215, 0)';
+    default: return 'rgb(59, 130, 246)';
+  }
+}
+
+// Custom hook for intersection observer
+function useElementOnScreen(options = {}): [RefObject<HTMLDivElement | null>, boolean] {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting)
+    }, options)
+
+    const currentElement = containerRef.current
+    if (currentElement) observer.observe(currentElement)
+
+    return () => {
+      if (currentElement) observer.unobserve(currentElement)
+    }
+  }, [options])
+
+  return [containerRef, isVisible]
+}
 
 export default function LandingPage() {
   const [language, setLanguage] = useState<'en' | 'ms'>('en');
@@ -45,7 +86,6 @@ export default function LandingPage() {
       signIn: "Sign In",
       signUp: "Sign Up",
       features: "Features",
-      howItWorks: "How It Works",
       readyToStart: "Ready to Start Your Dream Journey?",
       explore: "Explore our dream journal and visualization tools to discover new insights about yourself.",
       startExploring: "Start Exploring",
@@ -55,13 +95,14 @@ export default function LandingPage() {
       patternRecognitionDesc: "Discover recurring themes and symbols in your dreams over time.",
       dreamVisualization: "Dream Visualization",
       dreamVisualizationDesc: "Experience your dreams in a new way with our unique 3D visualization tool.",
-      recordDreams: "Record Your Dreams",
-      recordDreamsDesc: "As soon as you wake up, quickly capture your dream memories using our streamlined journaling interface.",
-      exploreAnalyze: "Explore and Analyze",
-      exploreAnalyzeDesc: "Use our powerful search and filtering tools to discover patterns and connections in your dream journal.",
-      visualizeShare: "Visualize and Share",
-      visualizeShareDesc: "Transform your dreams into stunning 3D visualizations and optionally share them with the community.",
       exploreDescription: "Start capturing and exploring your dreams today. Join our community of dreamers.",
+      dreamLeveling: "Dream Leveling",
+      dreamLevelingDesc: "Progress through unique dream levels as you journal, from Dreamwalker to Ascended Dreamer. Each level comes with a unique aura color and title.",
+      progressSystem: "Progress System",
+      progressSystemTitle: "Level Up Your Dream Journey",
+      progressSystemDesc: "Track your growth as a dreamer with our unique leveling system. Start as a Dreamwalker and progress through 8 distinctive levels, each with its own aura color and title.",
+      levelFeatures: "Level Features",
+      levelFeaturesDesc: "• Unique titles from Dreamwalker to Ascended Dreamer\n• Beautiful aura colors that evolve with your progress\n• Visual progress tracking with dynamic spheres\n• Personalized experience that grows with you",
     },
     ms: {
       title: "Tangkap Mimpi Anda, Buka Minda Anda",
@@ -71,7 +112,6 @@ export default function LandingPage() {
       signIn: "Log Masuk",
       signUp: "Daftar",
       features: "Ciri-ciri",
-      howItWorks: "Cara Ia Berfungsi",
       readyToStart: "Bersedia untuk Memulakan Perjalanan Mimpi Anda?",
       explore: "Terokai jurnal mimpi dan alat visualisasi kami untuk menemui wawasan baru tentang diri anda.",
       startExploring: "Mulakan Penjelajahan",
@@ -81,36 +121,57 @@ export default function LandingPage() {
       patternRecognitionDesc: "Temui tema dan simbol yang berulang dalam mimpi anda dari masa ke masa.",
       dreamVisualization: "Visualisasi Mimpi",
       dreamVisualizationDesc: "Alami mimpi anda dengan cara baru menggunakan alat visualisasi 3D unik kami.",
-      recordDreams: "Rekod Mimpi Anda",
-      recordDreamsDesc: "Sebaik sahaja anda bangun, cepat merekodkan ingatan mimpi anda menggunakan antara muka jurnal yang dipermudahkan.",
-      exploreAnalyze: "Terokai dan Analisis",
-      exploreAnalyzeDesc: "Gunakan alat carian dan penapisan yang kuat untuk menemui corak dan hubungan dalam jurnal mimpi anda.",
-      visualizeShare: "Visualisasikan dan Kongsikan",
-      visualizeShareDesc: "Ubah mimpi anda menjadi visualisasi 3D yang menakjubkan dan pilih untuk berkongsi dengan komuniti.",
       exploreDescription: "Mula tangkap dan terokai mimpi anda hari ini. Sertai komuniti pemimpi kami.",
+      dreamLeveling: "Peningkatan Tahap Mimpi",
+      dreamLevelingDesc: "Maju melalui tahap mimpi yang unik semasa anda menulis jurnal, dari Dreamwalker ke Ascended Dreamer. Setiap tahap hadir dengan warna aura dan gelaran yang unik.",
+      progressSystem: "Sistem Kemajuan",
+      progressSystemTitle: "Tingkatkan Perjalanan Mimpi Anda",
+      progressSystemDesc: "Jejaki perkembangan anda sebagai pemimpi dengan sistem peningkatan tahap yang unik. Mulakan sebagai Dreamwalker dan maju melalui 8 tahap yang berbeza, setiap satu dengan warna aura dan gelaran tersendiri.",
+      levelFeatures: "Ciri-ciri Tahap",
+      levelFeaturesDesc: "• Gelaran unik dari Dreamwalker ke Ascended Dreamer\n• Warna aura yang cantik yang berkembang dengan kemajuan anda\n• Penjejakan kemajuan visual dengan sfera dinamik\n• Pengalaman peribadi yang berkembang bersama anda",
     }
   };
 
   return (
-    <div className="min-h-screen landing-page">
-      {/* Language Switcher */}
-      <div className="flex justify-end p-4">
-        <span 
-          onClick={() => handleLanguageChange('en')} 
-          className={`mr-4 cursor-pointer ${language === 'en' ? 'text-white font-bold' : 'text-gray-400'}`}
-        >
-          EN
-        </span>
-        <span 
-          onClick={() => handleLanguageChange('ms')} 
-          className={`cursor-pointer ${language === 'ms' ? 'text-white font-bold' : 'text-gray-400'}`}
-        >
-          BM
-        </span>
+    <div className="min-h-screen landing-page relative">
+      {/* Meteors Background */}
+      <Meteors number={50} className="z-0" />
+      
+      {/* Header with Logo and Language Switcher */}
+      <div className="flex items-center justify-between p-4 border-b border-zinc-800/50 relative z-10">
+        {/* Logo and Text */}
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-8 h-8 relative">
+            <Image
+              src="/newlogo.svg"
+              alt="Aetherial Logo"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+          <span className="text-white text-lg font-semibold">Aetherial</span>
+        </Link>
+        
+        {/* Language Switcher */}
+        <div className="flex items-center">
+          <span 
+            onClick={() => handleLanguageChange('en')} 
+            className={`mr-4 cursor-pointer ${language === 'en' ? 'text-white font-bold' : 'text-gray-400'}`}
+          >
+            EN
+          </span>
+          <span 
+            onClick={() => handleLanguageChange('ms')} 
+            className={`cursor-pointer ${language === 'ms' ? 'text-white font-bold' : 'text-gray-400'}`}
+          >
+            BM
+          </span>
+        </div>
       </div>
 
       {/* Hero Section */}
-      <header className="relative overflow-hidden">
+      <header className="relative overflow-hidden z-10">
         <div className="container mx-auto px-4 py-16 md:py-24">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400">
@@ -134,10 +195,10 @@ export default function LandingPage() {
       </header>
 
       {/* Features Section */}
-      <section className="py-16 md:py-24 bg-zinc-900/50">
+      <section className="py-16 md:py-24 relative z-10">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">{translations[language].features}</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
             <div className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800/50">
               <div className="mb-4 text-blue-400">
                 <Moon className="h-8 w-8" />
@@ -165,57 +226,77 @@ export default function LandingPage() {
                 {translations[language].dreamVisualizationDesc}
               </p>
             </div>
+            <div className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800/50">
+              <div className="mb-4 text-green-400">
+                <Sparkles className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">{translations[language].dreamLeveling}</h3>
+              <p className="text-zinc-400">
+                {translations[language].dreamLevelingDesc}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-16 md:py-24">
+      {/* Progress System Section (New) */}
+      <section className="py-8 md:py-16 relative z-10">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">{translations[language].howItWorks}</h2>
-          <div className="max-w-3xl mx-auto space-y-12">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                <span className="font-semibold">1</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">{translations[language].recordDreams}</h3>
-                <p className="text-zinc-400">
-                  {translations[language].recordDreamsDesc}
-                </p>
-              </div>
+          <div className="max-w-4xl mx-auto">
+            {/* Introduction Section */}
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400">
+                Dream Level Progression
+              </h2>
+              <p className="text-lg text-zinc-400">
+                From Dreamwalker to Ascended Dreamer, each level unlocks new auras reflecting your journey through the dream realm.
+              </p>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                <span className="font-semibold">2</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">{translations[language].exploreAnalyze}</h3>
-                <p className="text-zinc-400">
-                  {translations[language].exploreAnalyzeDesc}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                <span className="font-semibold">3</span>
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold mb-2">{translations[language].visualizeShare}</h3>
-                <p className="text-zinc-400">
-                  {translations[language].visualizeShareDesc}
-                </p>
-              </div>
+
+            {/* Level Cards */}
+            <div className="grid gap-4">
+              {DREAM_LEVELS.map((level, index) => {
+                const [ref, isVisible] = useElementOnScreen({ threshold: 0.2 })
+                return (
+                  <div
+                    key={level.title}
+                    ref={ref}
+                    className={`bg-zinc-900/50 p-6 rounded-lg border border-zinc-800/50 fade-in-section ${isVisible ? 'is-visible' : ''}`}
+                    style={{ transitionDelay: `${index * 100}ms` }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <DreamSphere dreamCount={level.minEntries} size="md" />
+                      <div>
+                        <h3 className="text-lg font-semibold" style={{ color: getAuraColorValue(level) }}>
+                          {level.title}
+                        </h3>
+                        <p className="text-sm text-zinc-400">{level.minEntries}+ entries</p>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full progress-bar ${isVisible ? 'is-visible' : ''}`}
+                          style={{ 
+                            backgroundColor: getAuraColorValue(level),
+                            transitionDelay: `${index * 100 + 300}ms`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-zinc-900/50">
+      <section className="bg-zinc-900/50 py-8 md:py-16 relative z-10">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">{translations[language].readyToStart}</h2>
-          <p className="text-lg text-zinc-400 mb-8 max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{translations[language].readyToStart}</h2>
+          <p className="text-lg text-zinc-400 mb-6 max-w-2xl mx-auto">
             {translations[language].exploreDescription}
           </p>
           <Link href="/signup">

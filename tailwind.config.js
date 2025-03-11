@@ -57,6 +57,9 @@ module.exports = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: 0 },
@@ -82,6 +85,19 @@ module.exports = {
           "0%": { transform: "scale(0)", opacity: 1 },
           "100%": { transform: "scale(1)", opacity: 0 },
         },
+        "fade-in": {
+          "0%": { opacity: 0 },
+          "100%": { opacity: 1 },
+        },
+        "glow": {
+          "0%, 100%": { filter: "brightness(1) blur(3px)" },
+          "50%": { filter: "brightness(1.2) blur(5px)" },
+        },
+        "level-up-pulse": {
+          "0%": { transform: "scale(1)", opacity: 0.8 },
+          "50%": { transform: "scale(1.05)", opacity: 1 },
+          "100%": { transform: "scale(1)", opacity: 0.8 },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -92,6 +108,9 @@ module.exports = {
         "ripple": "ripple 6s linear infinite",
         "ripple-delay-1": "ripple 6s linear 2s infinite",
         "ripple-delay-2": "ripple 6s linear 4s infinite",
+        "fade-in": "fade-in 0.5s ease-in-out",
+        "glow": "glow 3s ease-in-out infinite",
+        "level-up-pulse": "level-up-pulse 3s ease-in-out infinite",
       },
     },
   },

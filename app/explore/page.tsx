@@ -11,6 +11,29 @@ import { createRoot } from 'react-dom/client'
 import { BottomNav } from "@/components/bottom-nav"
 import { getDreams } from "@/utils/supabase/dreams"
 import type { Dream } from "@/utils/supabase/dreams"
+import { DREAM_LEVELS, type LevelInfo } from "@/components/dream-level-profile"
+
+// Calculate level based on dream count
+const calculateLevel = (count: number) => {
+  return DREAM_LEVELS.find(
+    level => count >= level.minEntries && count <= level.maxEntries
+  ) || DREAM_LEVELS[0]
+}
+
+// Get the actual color value for the aura
+const getAuraColorValue = (level: LevelInfo) => {
+  switch(level.auraColor) {
+    case 'red': return new THREE.Color(239/255, 68/255, 68/255);
+    case 'orange': return new THREE.Color(249/255, 115/255, 22/255);
+    case 'white': return new THREE.Color(255/255, 255/255, 255/255);
+    case 'green': return new THREE.Color(34/255, 197/255, 94/255);
+    case 'blue': return new THREE.Color(59/255, 130/255, 246/255);
+    case 'indigo': return new THREE.Color(99/255, 102/255, 241/255);
+    case 'purple': return new THREE.Color(168/255, 85/255, 247/255);
+    case 'gold': return new THREE.Color(255/255, 215/255, 0/255);
+    default: return new THREE.Color(59/255, 130/255, 246/255);
+  }
+}
 
 interface DreamEntry {
   id: string
@@ -442,7 +465,7 @@ const DreamScene = ({ dreams, explorerPosition, onPositionChange, touchControls,
             <Environment />
             <WaterFloor playerPosition={explorerPosition} dreams={dreams} />
             <Grid />
-            <Explorer onPositionChange={onPositionChange} touchControls={touchControls} />
+            <Explorer onPositionChange={onPositionChange} touchControls={touchControls} dreamCount={dreams.length} />
             <DreamPoints dreams={dreams} boatPosition={explorerPosition} />
             <AdvertisementSpheres />
             
@@ -525,9 +548,10 @@ function Grid() {
 }
 
 // Explorer sphere with direct WASD movement and angled camera
-function Explorer({ onPositionChange, touchControls }: { 
+function Explorer({ onPositionChange, touchControls, dreamCount }: { 
   onPositionChange: (position: { x: number, z: number }) => void,
-  touchControls: { active: boolean, x: number, y: number }
+  touchControls: { active: boolean, x: number, y: number },
+  dreamCount: number
 }) {
   const { camera } = useThree()
   const sphereRef = useRef<THREE.Mesh>(null)
@@ -535,6 +559,10 @@ function Explorer({ onPositionChange, touchControls }: {
   // Use refs instead of state for frequently changing values
   const positionRef = useRef<{ x: number, z: number }>({ x: 0, z: 0 })
   const pulseIntensityRef = useRef<number>(1)
+  
+  // Calculate level and color based on dream count
+  const level = calculateLevel(dreamCount)
+  const auraColor = getAuraColorValue(level)
   
   // Keep state for values that don't change every frame
   const [keys, setKeys] = useState({ w: false, a: false, s: false, d: false })
@@ -746,8 +774,8 @@ function Explorer({ onPositionChange, touchControls }: {
     <mesh ref={sphereRef} position={[0, 0.5, 0]}>
       <sphereGeometry args={[0.4, 32, 32]} />
       <meshStandardMaterial 
-        color="white" 
-        emissive="white" 
+        color={auraColor} 
+        emissive={auraColor} 
         emissiveIntensity={pulseIntensityRef.current}
         toneMapped={false}
       />

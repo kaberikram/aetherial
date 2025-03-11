@@ -11,6 +11,7 @@ import Link from "next/link"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { getDreams } from "@/utils/supabase/dreams"
 import type { Dream } from "@/utils/supabase/dreams"
+import { DreamLevelProfile } from "@/components/dream-level-profile"
 
 export default function Home() {
   const [dreams, setDreams] = useState<Dream[]>([])
@@ -20,6 +21,7 @@ export default function Home() {
   const [language, setLanguage] = useState<'en' | 'ms'>('en')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentLevelTitle, setCurrentLevelTitle] = useState<string>("")
 
   useEffect(() => {
     // Load language from local storage
@@ -66,6 +68,17 @@ export default function Home() {
     if (hour < 12) return language === 'en' ? "Good Morning" : "Selamat Pagi"
     if (hour < 18) return language === 'en' ? "Good Afternoon" : "Selamat Petang"
     return language === 'en' ? "Good Evening" : "Selamat Malam"
+  }
+
+  // Function to get personalized greeting (without level title)
+  const getPersonalizedGreeting = () => {
+    return getGreeting()
+  }
+
+  // Handle level change from the DreamLevelProfile component
+  const handleLevelChange = (levelTitle: string) => {
+    setCurrentLevelTitle(levelTitle)
+    // We still track the level title for other potential uses, but don't display it in the greeting
   }
 
   // Translations for the home page
@@ -122,9 +135,9 @@ export default function Home() {
         </div>
 
         {/* Desktop layout - headers in a row for perfect alignment */}
-        <div className="hidden md:grid md:grid-cols-12 md:gap-8 md:mb-4">
+        <div className="hidden md:grid md:grid-cols-12 md:gap-8 md:mb-6">
           <div className="md:col-span-4">
-            <h1 className="text-2xl font-bold">{getGreeting()}</h1>
+            <h1 className="text-2xl font-bold">{getPersonalizedGreeting()}</h1>
           </div>
           <div className="md:col-span-8">
             <h2 className="text-2xl font-bold">
@@ -137,7 +150,17 @@ export default function Home() {
           <section className="mb-8 md:col-span-4 md:mb-0">
             <div className="md:sticky md:top-24 md:pr-4">
               {/* Only show heading on mobile */}
-              <h1 className="text-2xl font-bold mb-1 md:hidden">{getGreeting()}</h1>
+              <h1 className="text-2xl font-bold mb-4 md:hidden">{getPersonalizedGreeting()}</h1>
+              
+              {/* Dream Level Profile */}
+              <div className="mb-8">
+                <DreamLevelProfile 
+                  language={language} 
+                  dreamCount={dreams.length} 
+                  onLevelChange={handleLevelChange}
+                />
+              </div>
+              
               <p className="text-zinc-400 mb-6">{translations[language].readyToCapture}</p>
               
               {/* Desktop layout - search bar in left column */}

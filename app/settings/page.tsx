@@ -12,6 +12,7 @@ import { createClient } from "@/utils/supabase/client"
 import { getDreams, deleteAllDreams } from "@/utils/supabase/dreams"
 import type { Dream } from "@/utils/supabase/dreams"
 import { toast } from "sonner"
+import { DreamSphere } from "@/components/dream-sphere"
 
 // Daily generation limit - must match the API
 const DAILY_LIMIT = 2
@@ -462,9 +463,7 @@ export default function SettingsPage() {
             <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
               <div className="flex items-start gap-3">
                 <div className="mt-1">
-                  <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
-                    <User className="h-5 w-5" />
-                  </div>
+                  <DreamSphere dreamCount={dreams.length} size="md" showGlow={true} />
                 </div>
                 <div className="flex-1">
                   <h2 className="text-xl font-semibold mb-2">{translations[language].profile}</h2>
@@ -486,51 +485,41 @@ export default function SettingsPage() {
 
           {/* Language Selection */}
           <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
-            <div className="flex items-start gap-3">
-              <div className="mt-1 text-blue-400">
-                <Globe2 className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold mb-2">{translations[language].language}</h2>
-                <p className="text-zinc-400 mb-4">{translations[language].languageDesc}</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleLanguageChange('en')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      language === 'en'
-                        ? "bg-black/40 border border-zinc-500/20 text-white"
-                        : "bg-black/40 border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-black/60"
-                    }`}
-                  >
-                    {translations[language].english}
-                  </button>
-                  <button
-                    onClick={() => handleLanguageChange('ms')}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      language === 'ms'
-                        ? "bg-black/40 border border-zinc-500/20 text-white"
-                        : "bg-black/40 border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-black/60"
-                    }`}
-                  >
-                    {translations[language].malay}
-                  </button>
-                </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">{translations[language].language}</h2>
+              <p className="text-zinc-400 mb-4">{translations[language].languageDesc}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleLanguageChange('en')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    language === 'en'
+                      ? "bg-black/40 border border-zinc-500/20 text-white"
+                      : "bg-black/40 border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-black/60"
+                  }`}
+                >
+                  {translations[language].english}
+                </button>
+                <button
+                  onClick={() => handleLanguageChange('ms')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    language === 'ms'
+                      ? "bg-black/40 border border-zinc-500/20 text-white"
+                      : "bg-black/40 border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-black/60"
+                  }`}
+                >
+                  {translations[language].malay}
+                </button>
               </div>
             </div>
           </section>
 
           {/* Data Privacy Notice */}
           <section className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 p-6">
-            <div className="flex items-start gap-3">
-              <div className="mt-1 text-blue-400">
-                <InfoIcon className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold mb-2">{translations[language].dataPrivacy}</h2>
-                <p className="text-zinc-400">
-                  {translations[language].dataPrivacyDesc}
-                </p>
-              </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">{translations[language].dataPrivacy}</h2>
+              <p className="text-zinc-400">
+                {translations[language].dataPrivacyDesc}
+              </p>
             </div>
           </section>
           

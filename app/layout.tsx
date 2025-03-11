@@ -2,11 +2,11 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { SidebarNav } from "@/components/sidebar-nav"
 import Link from "next/link"
 import Script from "next/script"
 import { Toaster } from "@/components/ui/sonner"
 import { Analytics } from '@vercel/analytics/react'
+import { LayoutWithConditionalSidebar } from '@/components/layout-with-conditional-sidebar'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -98,20 +98,13 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-black text-white`}>
         <Toaster position="top-center" />
-        <div className="flex h-screen">
-          <SidebarNav />
-          <div className="flex-1 md:pl-64">
-            <div className="mx-auto w-full">
-              {children}
-            </div>
-          </div>
-        </div>
+        <LayoutWithConditionalSidebar>
+          {children}
+        </LayoutWithConditionalSidebar>
         <Analytics />
       </body>
     </html>
   )
 }
-
-
 
 import './globals.css'
