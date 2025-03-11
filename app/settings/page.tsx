@@ -472,14 +472,13 @@ export default function SettingsPage() {
                     <div className="text-sm">{translations[language].email}</div>
                     <div className="text-white">{user.email}</div>
                   </div>
-                  <Button
-                    variant="destructive"
+                  <button
                     onClick={handleSignOut}
-                    className="h-9 px-3 text-sm font-medium"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 border border-red-500/20 text-red-500 rounded-lg transition-colors"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
+                    <LogOut className="h-4 w-4" />
                     {translations[language].signOut}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </section>
@@ -495,20 +494,26 @@ export default function SettingsPage() {
                 <h2 className="text-xl font-semibold mb-2">{translations[language].language}</h2>
                 <p className="text-zinc-400 mb-4">{translations[language].languageDesc}</p>
                 <div className="flex gap-2">
-                  <Button
-                    variant={language === 'en' ? "default" : "outline"}
+                  <button
                     onClick={() => handleLanguageChange('en')}
-                    className="h-8 px-3 text-sm"
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      language === 'en'
+                        ? "bg-black/40 border border-zinc-500/20 text-white"
+                        : "bg-black/40 border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-black/60"
+                    }`}
                   >
                     {translations[language].english}
-                  </Button>
-                  <Button
-                    variant={language === 'ms' ? "default" : "outline"}
+                  </button>
+                  <button
                     onClick={() => handleLanguageChange('ms')}
-                    className="h-8 px-3 text-sm"
+                    className={`px-4 py-2 rounded-lg transition-colors ${
+                      language === 'ms'
+                        ? "bg-black/40 border border-zinc-500/20 text-white"
+                        : "bg-black/40 border border-zinc-800/50 text-zinc-400 hover:text-white hover:bg-black/60"
+                    }`}
                   >
                     {translations[language].malay}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -540,14 +545,13 @@ export default function SettingsPage() {
                     <h3 className="font-medium">{translations[language].clearJournal}</h3>
                     <p className="text-sm text-zinc-400">{translations[language].clearJournalDesc}</p>
                   </div>
-                  <Button 
-                    variant="destructive"
+                  <button 
                     onClick={() => setShowConfirmation(true)}
-                    className="shrink-0 w-full md:w-auto h-9 px-3 text-sm font-medium"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 border border-red-500/20 text-red-500 rounded-lg transition-colors"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash2 className="h-4 w-4" />
                     {translations[language].clearAll}
-                  </Button>
+                  </button>
                 </div>
                 
                 {showConfirmation && (
@@ -559,29 +563,27 @@ export default function SettingsPage() {
                           {translations[language].confirmClear}
                         </p>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
+                          <button 
                             onClick={clearAllDreams}
                             disabled={isClearing}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 border border-red-500/20 text-red-500 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isClearing ? (
                               <>
-                                <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                                 {translations[language].clearing}
                               </>
                             ) : (
                               translations[language].yesClearAll
                             )}
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
+                          </button>
+                          <button 
                             onClick={() => setShowConfirmation(false)}
                             disabled={isClearing}
+                            className="px-4 py-2 bg-black/40 hover:bg-black/60 border border-zinc-800/50 text-zinc-400 hover:text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {translations[language].cancel}
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -596,7 +598,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-zinc-400">{translations[language].exportDataDesc}</p>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <Button
+                    <button
                       onClick={() => {
                         const dataStr = JSON.stringify(dreams, null, 2)
                         const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
@@ -606,18 +608,18 @@ export default function SettingsPage() {
                         linkElement.setAttribute('download', exportFileDefaultName)
                         linkElement.click()
                       }}
-                      className="h-9 px-4"
                       disabled={isLoadingDreams || dreams.length === 0}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 border border-zinc-800/50 text-zinc-400 hover:text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {translations[language].exportDreamsJson}
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       onClick={handlePdfExport}
-                      className="h-9 px-4"
                       disabled={isLoadingDreams || dreams.length === 0}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 border border-zinc-800/50 text-zinc-400 hover:text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {translations[language].exportDreamsPdf}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>

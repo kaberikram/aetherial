@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/moon-icon.svg', type: 'image/svg+xml' },
+      { url: '/newlogo.svg', type: 'image/svg+xml' },
       { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' }
     ],
@@ -63,7 +63,7 @@ export default function RootLayout({
       <head>
         {/* Preload the explore page to ensure loading screen appears instantly */}
         <link rel="preload" href="/explore" as="document" />
-        <link rel="icon" href="/moon-icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/newlogo.svg" type="image/svg+xml" />
         
         {/* Preload THREE.js */}
         <link rel="preload" href="https://unpkg.com/three@0.174.0/build/three.module.js" as="script" />

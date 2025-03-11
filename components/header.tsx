@@ -8,11 +8,12 @@ export function Header() {
       <div className="flex items-center justify-between">
         <Link href="/home" className="flex items-center gap-2">
           <Image 
-            src="/moon-icon.svg" 
-            alt="Aetherial" 
-            width={24} 
-            height={24} 
-            className="h-6 w-6"
+            priority
+            width={32}
+            height={32}
+            className="h-8 w-8"
+            src="/newlogo.svg"
+            alt="Aetherial"
           />
           <span className="text-xl font-semibold">Aetherial</span>
         </Link>

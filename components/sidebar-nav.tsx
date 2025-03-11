@@ -68,12 +68,13 @@ export function SidebarNav() {
       <div className="flex flex-col h-full px-4 py-8">
         {/* App Logo */}
         <div className="flex items-center gap-2 px-2 mb-8">
-          <Image 
-            src="/moon-logo.svg" 
-            alt="Aetherial" 
-            width={32} 
-            height={32} 
+          <Image
+            priority
+            width={32}
+            height={32}
             className="h-8 w-8"
+            src="/newlogo.svg"
+            alt="Aetherial"
           />
           <span className="text-2xl font-semibold">Aetherial</span>
         </div>
