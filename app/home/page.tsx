@@ -93,7 +93,8 @@ export default function Home() {
       emotions: ["Happy", "Excited", "Scared", "Anxious", "Confused", "Peaceful"],
       loading: "Loading dreams...",
       error: "Failed to load dreams. Please try again.",
-      noDreams: "No dreams yet. Start by capturing your first dream!"
+      noDreams: "No dreams yet. Start by capturing your first dream!",
+      dreamPop: "Dream Pop"
     },
     ms: {
       readyToCapture: "Bersedia untuk merekod mimpi anda?",
@@ -105,7 +106,8 @@ export default function Home() {
       emotions: ["Gembira", "Teruja", "Takut", "Cemas", "Keliru", "Tenang"],
       loading: "Memuat mimpi...",
       error: "Gagal memuat mimpi. Sila cuba lagi.",
-      noDreams: "Belum ada mimpi. Mulakan dengan merekod mimpi pertama anda!"
+      noDreams: "Belum ada mimpi. Mulakan dengan merekod mimpi pertama anda!",
+      dreamPop: "Dream Pop"
     }
   }
 
@@ -194,6 +196,23 @@ export default function Home() {
                     <path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   {translations[language].exploreDreams}
+                </GradientButton>
+              </Link>
+
+              <Link href="/dreampop" className="block w-full mt-3">
+                <GradientButton className="w-full flex items-center justify-center gap-2 gradient-button-variant">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15 5v2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 5v2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M15 17v2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 17v2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M5 9h2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M17 9h2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M5 15h2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M17 15h2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {translations[language].dreamPop}
                 </GradientButton>
               </Link>
             </div>
