@@ -4,7 +4,7 @@ import { DreampopClient } from './dreampop-client' // Import the new client comp
 
 // Keep the specific metadata for this page
 export const metadata: Metadata = {
-  title: 'DreamPop - Aetherial Dream',
+  title: 'Dreampop - Aetherial Dream',
   description: 'Hit matching colored spheres to score! Beat the clock in this fast-paced arcade game.',
   openGraph: {
     title: 'DreamPop - Aetherial Dream',
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     url: 'https://www.aetherialdream.com/dreampop',
     images: [
       {
-        url: 'https://www.aetherialdream.com/dreampopWeb.png', // Use the specific image
+        url: 'https://www.aetherialdream.com/dreampopCover.png', // Use the specific image
         width: 1200,
         height: 630,
         alt: 'DreamPop Game',
@@ -22,9 +22,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DreamPop - Aetherial Dream',
+    title: 'Dreampop - Aetherial Dream',
     description: 'Hit matching colored spheres to score! Beat the clock in this fast-paced arcade game.',
-    images: ['https://www.aetherialdream.com/dreampopWeb.png'], // Use the specific image
+    images: ['https://www.aetherialdream.com/dreampopCover.png'], // Use the specific image
     creator: '@Kaberikram',
   },
 }
