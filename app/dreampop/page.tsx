@@ -15,6 +15,53 @@ import Image from 'next/image';
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
+// Metadata for DreamPop game page
+export const metadata: Metadata = {
+  title: 'DreamPop - A Color Matching Game | Aetherial',
+  description: 'Match colors, score points, and compete for the highest Aura Points in this mesmerizing rhythm-based color matching game. Challenge your reflexes and color perception!',
+  keywords: 'DreamPop, color matching game, rhythm game, browser game, Aetherial, web game, indie game',
+  openGraph: {
+    title: 'DreamPop - A Color Matching Game | Aetherial',
+    description: 'Match colors, score points, and compete for the highest Aura Points in this mesmerizing rhythm-based color matching game.',
+    url: 'https://www.aetherialdream.com/dreampop',
+    siteName: 'Aetherial',
+    images: [
+      {
+        url: 'https://www.aetherialdream.com/dreampopCover.png',
+        width: 1200,
+        height: 630,
+        alt: 'DreamPop Game Preview'
+      }
+    ],
+    type: 'website',
+    locale: 'en_US'
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DreamPop - A Color Matching Game | Aetherial',
+    description: 'Match colors, score points, and compete for the highest Aura Points in this mesmerizing rhythm-based color matching game.',
+    images: ['https://www.aetherialdream.com/dreampopCover.png'],
+    creator: '@Kaberikram'
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code',
+  },
+  alternates: {
+    canonical: 'https://www.aetherialdream.com/dreampop'
+  }
+}
+
 // Windows logo colors as hex strings (Source of Truth)
 const WINDOWS_COLOR_HEX = [
   "#f25022", // Red (0)
@@ -337,34 +384,6 @@ function WaterFloor({ playerPosition, wrongHitStatus, matchHitStatus }: {
       <rippleShaderMaterial ref={materialRef} />
     </mesh>
   );
-}
-
-// Loading UI component
-function LoadingUI() {
-  return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-black z-50">
-      <div className="relative w-24 h-24 mb-8">
-        {/* Animated boat */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 bg-white rounded-full animate-pulse"></div>
-        </div>
-        
-        {/* Animated waves */}
-        <div className="absolute bottom-0 left-0 right-0 h-4">
-          <div className="w-full h-1 bg-white/30 rounded-full animate-[pulse_1.5s_ease-in-out_infinite]"></div>
-          <div className="w-full h-1 mt-1 bg-white/20 rounded-full animate-[pulse_2s_ease-in-out_infinite]"></div>
-        </div>
-      </div>
-      
-      <h2 className="text-xl font-bold mb-2">Initializing Dream Explorer</h2>
-      <p className="text-zinc-400 text-sm mb-4">Preparing your dream voyage...</p>
-      
-      <div className="flex items-center gap-2">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span className="text-sm">Loading dream space</span>
-      </div>
-    </div>
-  )
 }
 
 // Post-processing effects component
@@ -1965,7 +1984,7 @@ function PreGameOverlay({ onStart }: { onStart: () => void }) {
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
-      <div className="bg-black border border-zinc-800 rounded-xl max-w-[360px] w-full py-6 px-5 shadow-xl mx-auto">
+      <div className="bg-black border border-zinc-800 rounded-xl max-w-[360px] w-full py-6 px-5 shadow-xl mx-auto relative">
         {/* Dreampop logo */}
         <div className="flex justify-center mb-3">
           <Image 
@@ -2066,10 +2085,22 @@ function PreGameOverlay({ onStart }: { onStart: () => void }) {
         <button 
           onClick={onStart}
           className="block w-full max-w-[240px] mx-auto py-2.5 bg-gradient-to-r from-[#f25022] via-[#ffb900] via-[#7fba00] to-[#00a4ef] opacity-70 hover:opacity-100 rounded-lg transition-opacity duration-300 ease-in-out"
-            style={{ backgroundSize: '100% auto', animation: 'gradient-move 4s linear infinite' }}
+          style={{ backgroundSize: '100% auto', animation: 'gradient-move 4s linear infinite' }}
         >
           S T A R T
         </button>
+        
+        {/* Creator credit */}
+        <div className="absolute bottom-[-24px] right-3">
+          <a 
+            href="https://x.com/Kaberikram" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            created by @Kaberikram
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -2162,7 +2193,7 @@ function PostGameOverlay({
   
   return (
     <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-30 p-4">
-      <div className="bg-black border border-zinc-800 rounded-xl max-w-[360px] w-full py-7 px-5 shadow-xl mx-auto">
+      <div className="bg-black border border-zinc-800 rounded-xl max-w-[360px] w-full py-7 px-5 shadow-xl mx-auto relative">
         <h1 className="text-3xl font-bold text-center mb-4">Dream Over</h1>
 
         {/* Score display */}
@@ -2264,7 +2295,6 @@ function PostGameOverlay({
 
         {/* Share Buttons */}
         <ScoreShareButtons score={score} /> 
-
       </div>
     </div>
   );
@@ -2358,7 +2388,6 @@ function TorusTimer({ timeLeft, totalTime, score }: { timeLeft: number, totalTim
 
 // Main scene component that handles loading
 function DreamExplorer() {
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [explorerPosition, setExplorerPosition] = useState({ x: 0, z: 0 })
   const [showInstructions, setShowInstructions] = useState(false)
@@ -2385,7 +2414,6 @@ function DreamExplorer() {
           // Game over when timer runs out
           if (timerRef.current) clearInterval(timerRef.current)
           setGameState("POST_GAME")
-          // Don't reset score here, we want to keep it for display
           return 0
         }
         return prev - 0.1 // Update every 100ms for smoother countdown
@@ -2416,22 +2444,6 @@ function DreamExplorer() {
     }
   }, [])
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-      } catch (err) {
-        console.error('Failed to load dreams:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load dreams')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadData()
-  }, [])
-
   const handlePositionChange = (position: { x: number, z: number }) => {
     setExplorerPosition(position)
     // Update global position for persistence
@@ -2441,27 +2453,13 @@ function DreamExplorer() {
   }
 
   const toggleInstructions = () => {
-    // Removed console.log
     setShowInstructions(!showInstructions)
   }
 
   // Set document title dynamically
   useEffect(() => {
-    // Removed console.log
     document.title = "Dreampop";
-    // Optional: Reset title on unmount if needed
-    return () => {
-      // document.title = "Aetherial - DreamJournal"; // Or your default title
-    };
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-xl">Loading dreams...</div>
-      </div>
-    )
-  }
+  }, []);
 
   if (error) {
     return (
@@ -2484,9 +2482,7 @@ function DreamExplorer() {
         />
       )}
       
-      {/* Remove the 2D Game timer since we're using the 3D one */}
-      
-      {/* Instructions Panel - Updated with color matching instructions */}
+      {/* Instructions Panel */}
       {gameState === "PLAYING" && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-20">
           <div className="relative">
@@ -2534,19 +2530,17 @@ function DreamExplorer() {
       {/* Main Canvas */}
       <div className="absolute inset-0">
         <ErrorBoundary fallback={<div>Something went wrong with the 3D scene</div>}>
-          <Suspense fallback={<LoadingUI />}>
-            <DreamScene 
-              explorerPosition={explorerPosition}
-              onPositionChange={handlePositionChange}
-              touchControls={touchControls}
-              setTouchControls={setTouchControls}
-              gameActive={gameState === "PLAYING"}
-              onScoreUpdate={handleScoreUpdate}
-              initialScore={gameState === "PRE_GAME" ? 0 : score}
-              timeLeft={timeLeft}
-              totalTime={GAME_DURATION}
-            />
-          </Suspense>
+          <DreamScene 
+            explorerPosition={explorerPosition}
+            onPositionChange={handlePositionChange}
+            touchControls={touchControls}
+            setTouchControls={setTouchControls}
+            gameActive={gameState === "PLAYING"}
+            onScoreUpdate={handleScoreUpdate}
+            initialScore={gameState === "PRE_GAME" ? 0 : score}
+            timeLeft={timeLeft}
+            totalTime={GAME_DURATION}
+          />
         </ErrorBoundary>
       </div>
 
