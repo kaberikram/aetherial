@@ -497,6 +497,9 @@ function DreamScene({ explorerPosition, onPositionChange, touchControls, setTouc
         return;
       }
       
+      // Prevent the browser from firing a 'click' event after this touch
+      e.preventDefault();
+      
       // If this is a quick tap (not dragging), change color
       // This prevents color changes when using the joystick
       if (e.changedTouches.length > 0) {
