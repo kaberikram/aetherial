@@ -10,11 +10,11 @@ import { PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { getDreams } from "@/utils/supabase/dreams"
-import type { Dream } from "@/utils/supabase/dreams"
+import type { DreamListItem } from "@/utils/supabase/dreams"
 import { DreamLevelProfile } from "@/components/dream-level-profile"
 
 export default function Home() {
-  const [dreams, setDreams] = useState<Dream[]>([])
+  const [dreams, setDreams] = useState<DreamListItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null)

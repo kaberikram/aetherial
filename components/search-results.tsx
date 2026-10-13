@@ -2,11 +2,11 @@ import Link from "next/link"
 import { DreamCard } from "./dream-card"
 import { MeteorCard } from "./ui/meteor-card"
 import { useState, useEffect } from "react"
-import type { Dream } from "@/utils/supabase/dreams"
+import type { DreamListItem } from "@/utils/supabase/dreams"
 import { Button } from "./ui/button"
 
 interface SearchResultsProps {
-  dreams: Dream[]
+  dreams: DreamListItem[]
   searchTerm: string
   activeFilters: string[]
   selectedEmotion: string | null

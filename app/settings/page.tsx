@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { forceResetWithAllSampleDreams } from "@/utils/sampleDream"
 import { createClient } from "@/utils/supabase/client"
-import { getDreams, deleteAllDreams } from "@/utils/supabase/dreams"
+import { getAllDreams, deleteAllDreams } from "@/utils/supabase/dreams"
 import type { Dream } from "@/utils/supabase/dreams"
 import { toast } from "sonner"
 import { DreamSphere } from "@/components/dream-sphere"
@@ -47,7 +47,7 @@ export default function SettingsPage() {
 
         // Load dreams
         setIsLoadingDreams(true)
-        const fetchedDreams = await getDreams()
+        const fetchedDreams = await getAllDreams()
         setDreams(fetchedDreams)
       } catch (error) {
         console.error('Error loading user or dreams:', error)
