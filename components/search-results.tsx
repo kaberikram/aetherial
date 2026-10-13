@@ -2,14 +2,16 @@ import Link from "next/link"
 import { DreamCard } from "./dream-card"
 import { MeteorCard } from "./ui/meteor-card"
 import { useState, useEffect } from "react"
-import type { DreamListItem } from "@/utils/supabase/dreams"
+import type { DreamCategory, DreamListItem, DreamState, DreamType } from "@/utils/supabase/dreams"
 import { Button } from "./ui/button"
 
 interface SearchResultsProps {
   dreams: DreamListItem[]
   searchTerm: string
-  activeFilters: string[]
   selectedEmotion: string | null
+  kategoriMimpi: DreamCategory | null
+  keadaanMimpi: DreamState | null
+  jenisMimpi: DreamType | null
 }
 
 const DREAMS_PER_PAGE = 20
@@ -51,7 +53,14 @@ const mapToValidEmotion = (emotion: string): "happy" | "scared" | "confused" | "
   return "confused";
 }
 
-export function SearchResults({ dreams, searchTerm, activeFilters, selectedEmotion }: SearchResultsProps) {
+export function SearchResults({
+  dreams,
+  searchTerm,
+  selectedEmotion,
+  kategoriMimpi,
+  keadaanMimpi,
+  jenisMimpi,
+}: SearchResultsProps) {
   const [language, setLanguage] = useState<'en' | 'ms'>('en');
   const [displayCount, setDisplayCount] = useState(DREAMS_PER_PAGE);
 
@@ -89,7 +98,7 @@ export function SearchResults({ dreams, searchTerm, activeFilters, selectedEmoti
 
   useEffect(() => {
     setDisplayCount(DREAMS_PER_PAGE)
-  }, [searchTerm, selectedEmotion])
+  }, [searchTerm, selectedEmotion, kategoriMimpi, keadaanMimpi, jenisMimpi])
 
   const filteredDreams = dreams.filter((dream) => {
     // First, filter by emotion if selected
@@ -105,6 +114,10 @@ export function SearchResults({ dreams, searchTerm, activeFilters, selectedEmoti
         return false;
       }
     }
+
+    if (kategoriMimpi && dream.kategori_mimpi !== kategoriMimpi) return false
+    if (keadaanMimpi && dream.keadaan_mimpi !== keadaanMimpi) return false
+    if (jenisMimpi && dream.jenis_mimpi !== jenisMimpi) return false
 
     // If no search term, just show all dreams (or filtered by emotion above)
     if (!searchTerm) {
