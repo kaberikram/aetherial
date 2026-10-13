@@ -25,6 +25,17 @@ export interface Dream {
   updated_at: string
 }
 
+export interface DreamListItem {
+  id: string
+  title: string
+  date: string
+  location: string
+  people: string
+  emotion: "Happy" | "Scared" | "Confused" | "Peaceful" | "Anxious" | "Excited"
+  summary: string
+  created_at: string
+}
+
 export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Dream> {
   const supabase = createClient()
   const {
@@ -69,7 +80,26 @@ export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created
   return data
 }
 
-export async function getDreams() {
+export async function getDreams(): Promise<DreamListItem[]> {
+  const supabase = createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('User not authenticated')
+
+  const { data, error } = await supabase
+    .from('dreams')
+    .select('id, title, date, location, people, emotion, summary, created_at')
+    .eq('user_id', user.id)
+    .order('date', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function getAllDreams(): Promise<Dream[]> {
   const supabase = createClient()
   
   const {
@@ -86,6 +116,24 @@ export async function getDreams() {
 
   if (error) throw error
   return data
+}
+
+export async function getDreamCount() {
+  const supabase = createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('User not authenticated')
+
+  const { count, error } = await supabase
+    .from('dreams')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  if (error) throw error
+  return count || 0
 }
 
 export async function getDreamById(id: string) {

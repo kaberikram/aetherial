@@ -52,8 +52,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
+    // Redirect /explore to /home (feature removed)
+    if (request.nextUrl.pathname.startsWith('/explore')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/home'
+      return NextResponse.redirect(url)
+    }
+
     // Protected routes that require authentication
-    const protectedRoutes = ['/home', '/settings', '/capture', '/explore']
+    const protectedRoutes = ['/home', '/settings', '/capture']
     if (!user && protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'

@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Link from "next/link"
-import Script from "next/script"
 import { Toaster } from "@/components/ui/sonner"
 import { Analytics } from '@vercel/analytics/react'
 import { LayoutWithConditionalSidebar } from '@/components/layout-with-conditional-sidebar'
@@ -61,40 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Preload the explore page to ensure loading screen appears instantly */}
-        <link rel="preload" href="/explore" as="document" />
         <link rel="icon" href="/newlogo.svg" type="image/svg+xml" />
-        
-        {/* Preload THREE.js */}
-        <link rel="preload" href="https://unpkg.com/three@0.174.0/build/three.module.js" as="script" />
-        
-        {/* Script to preload THREE.js */}
-        <Script id="preload-three" strategy="afterInteractive">
-          {`
-            if (typeof window !== 'undefined') {
-              // Create a link to preload THREE.js
-              const link = document.createElement('link');
-              link.rel = 'preload';
-              link.as = 'script';
-              link.href = 'https://unpkg.com/three@0.174.0/build/three.module.js';
-              document.head.appendChild(link);
-              
-              // Preload common THREE.js resources
-              const preloadResources = [
-                'https://unpkg.com/three@0.174.0/examples/jsm/loaders/GLTFLoader.js',
-                'https://unpkg.com/three@0.174.0/examples/jsm/controls/OrbitControls.js'
-              ];
-              
-              preloadResources.forEach(resource => {
-                const resourceLink = document.createElement('link');
-                resourceLink.rel = 'preload';
-                resourceLink.as = 'script';
-                resourceLink.href = resource;
-                document.head.appendChild(resourceLink);
-              });
-            }
-          `}
-        </Script>
       </head>
       <body className={`${inter.className} bg-black text-white`}>
         <Toaster position="top-center" />

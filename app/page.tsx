@@ -81,20 +81,20 @@ export default function LandingPage() {
     en: {
       title: "Capture Your Dreams, Unlock Your Mind",
       description: "A beautiful and intuitive dream journal that helps you record, explore, and understand your dreams.",
-      startDreaming: "Enter the Dreamscape",
+      startDreaming: "Start Your Journey",
       joinNow: "Join Now",
       signIn: "Sign In",
       signUp: "Sign Up",
       features: "Features",
       readyToStart: "Ready to Start Your Dream Journey?",
-      explore: "Explore our dream journal and visualization tools to discover new insights about yourself.",
+      explore: "Start capturing and tracking your dreams today. Progress through unique dream levels as you build your collection.",
       startExploring: "Start Exploring",
       dreamJournal: "Dream Journal",
       dreamJournalDesc: "Easily record and organize your dreams with our intuitive journaling interface.",
       patternRecognition: "Pattern Recognition",
       patternRecognitionDesc: "Discover recurring themes and symbols in your dreams over time.",
-      dreamVisualization: "Dream Visualization",
-      dreamVisualizationDesc: "Experience your dreams in a new way with our unique 3D visualization tool.",
+      dreamTracking: "Dream Tracking",
+      dreamTrackingDesc: "Track your dreams with detailed logging and build your personal dream collection.",
       exploreDescription: "Start capturing and exploring your dreams today. Join our community of dreamers.",
       dreamLeveling: "Dream Leveling",
       dreamLevelingDesc: "Progress through unique dream levels as you journal, from Dreamwalker to Ascended Dreamer. Each level comes with a unique aura color and title.",
@@ -107,20 +107,20 @@ export default function LandingPage() {
     ms: {
       title: "Tangkap Mimpi Anda, Buka Minda Anda",
       description: "Jurnal mimpi yang cantik dan intuitif yang membantu anda merekod, meneroka, dan memahami mimpi anda.",
-      startDreaming: "Masuk ke Alam Mimpi",
+      startDreaming: "Mulakan Perjalanan Anda",
       joinNow: "Sertai Sekarang",
       signIn: "Log Masuk",
       signUp: "Daftar",
       features: "Ciri-ciri",
       readyToStart: "Bersedia untuk Memulakan Perjalanan Mimpi Anda?",
-      explore: "Terokai jurnal mimpi dan alat visualisasi kami untuk menemui wawasan baru tentang diri anda.",
+      explore: "Mulakan merekod dan menjejaki mimpi anda hari ini. Maju melalui tahap mimpi yang unik semasa anda membina koleksi anda.",
       startExploring: "Mulakan Penjelajahan",
       dreamJournal: "Jurnal Mimpi",
       dreamJournalDesc: "Mudah merekod dan mengatur mimpi anda dengan antara muka jurnal yang intuitif.",
       patternRecognition: "Pengenalan Corak",
       patternRecognitionDesc: "Temui tema dan simbol yang berulang dalam mimpi anda dari masa ke masa.",
-      dreamVisualization: "Visualisasi Mimpi",
-      dreamVisualizationDesc: "Alami mimpi anda dengan cara baru menggunakan alat visualisasi 3D unik kami.",
+      dreamTracking: "Penjejakan Mimpi",
+      dreamTrackingDesc: "Jejaki mimpi anda dengan pencatatan terperinci dan bina koleksi mimpi peribadi anda.",
       exploreDescription: "Mula tangkap dan terokai mimpi anda hari ini. Sertai komuniti pemimpi kami.",
       dreamLeveling: "Peningkatan Tahap Mimpi",
       dreamLevelingDesc: "Maju melalui tahap mimpi yang unik semasa anda menulis jurnal, dari Dreamwalker ke Ascended Dreamer. Setiap tahap hadir dengan warna aura dan gelaran yang unik.",
@@ -221,9 +221,9 @@ export default function LandingPage() {
               <div className="mb-4 text-amber-400">
                 <CloudLightning className="h-8 w-8" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">{translations[language].dreamVisualization}</h3>
+              <h3 className="text-xl font-semibold mb-2">{translations[language].dreamTracking}</h3>
               <p className="text-zinc-400">
-                {translations[language].dreamVisualizationDesc}
+                {translations[language].dreamTrackingDesc}
               </p>
             </div>
             <div className="bg-zinc-900/50 p-6 rounded-lg border border-zinc-800/50">

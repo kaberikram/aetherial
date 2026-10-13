@@ -1,6 +1,6 @@
 "use client"
 
-import { HomeIcon, PlusIcon, GlobeIcon, SettingsIcon } from "lucide-react"
+import { HomeIcon, PlusIcon, SettingsIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -46,13 +46,11 @@ export function SidebarNav() {
     en: {
       home: "Home",
       capture: "Capture",
-      explore: "Explore",
       settings: "Settings"
     },
     ms: {
       home: "Utama",
       capture: "Rakam",
-      explore: "Layar",
       settings: "Tetapan"
     }
   }
@@ -103,27 +101,6 @@ export function SidebarNav() {
           >
             <PlusIcon className="h-5 w-5" />
             <span className="font-medium">{translations[language].capture}</span>
-          </Link>
-          
-          <Link 
-            href="/explore" 
-            prefetch={true}
-            className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
-              isActive("/explore") 
-                ? "bg-zinc-800/80 text-white" 
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-            }`}
-            onMouseEnter={() => {
-              // Preload the explore page when hovering over the link
-              const link = document.createElement('link');
-              link.rel = 'preload';
-              link.as = 'document';
-              link.href = '/explore';
-              document.head.appendChild(link);
-            }}
-          >
-            <GlobeIcon className="h-5 w-5" />
-            <span className="font-medium">{translations[language].explore}</span>
           </Link>
           
           <Link 
