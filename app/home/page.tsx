@@ -1,66 +1,77 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useRef, useState } from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { SearchBar } from "@/components/search-bar"
 import { FilterChips } from "@/components/filter-chips"
+import type { JournalFilterState } from "@/components/filter-chips"
 import { SearchResults } from "@/components/search-results"
 import { PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { GradientButton } from "@/components/ui/gradient-button"
-import { getDreams } from "@/utils/supabase/dreams"
+import { getDreams, toDreamEmotion } from "@/utils/supabase/dreams"
 import type { DreamListItem } from "@/utils/supabase/dreams"
 import { DreamLevelProfile } from "@/components/dream-level-profile"
+import { useMountEffect } from "@/hooks/use-mount-effect"
 
 export default function Home() {
   const [dreams, setDreams] = useState<DreamListItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeFilters, setActiveFilters] = useState<string[]>([])
-  const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null)
+  const [filters, setFilters] = useState<JournalFilterState>(emptyFilters)
   const [language, setLanguage] = useState<'en' | 'ms'>('en')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentLevelTitle, setCurrentLevelTitle] = useState<string>("")
+  const loadRequestId = useRef(0)
 
-  useEffect(() => {
-    // Load language from local storage
+  useMountEffect(() => {
     const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null
-    if (savedLanguage) {
-      setLanguage(savedLanguage)
+    if (savedLanguage) setLanguage(savedLanguage)
+  })
+
+  async function loadDreams(nextFilters: JournalFilterState) {
+    const requestId = loadRequestId.current + 1
+    loadRequestId.current = requestId
+
+    try {
+      setLoading(true)
+      setError(null)
+      const fetchedDreams = await getDreams({
+        emotion: toDreamEmotion(nextFilters.emotion),
+        kategoriMimpi: nextFilters.kategoriMimpi,
+        keadaanMimpi: nextFilters.keadaanMimpi,
+        jenisMimpi: nextFilters.jenisMimpi,
+      })
+      if (requestId !== loadRequestId.current) return
+      setDreams(fetchedDreams)
+    } catch (err) {
+      if (requestId !== loadRequestId.current) return
+      console.error('Failed to load dreams:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load dreams')
+    } finally {
+      if (requestId === loadRequestId.current) setLoading(false)
     }
-  }, [])
+  }
 
-  useEffect(() => {
-    async function loadDreams() {
-      try {
-        setLoading(true)
-        setError(null)
-        const fetchedDreams = await getDreams()
-        setDreams(fetchedDreams)
-      } catch (err) {
-        console.error('Failed to load dreams:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load dreams')
-      } finally {
-        setLoading(false)
-      }
-    }
+  function handleFiltersChange(nextFilters: JournalFilterState) {
+    setFilters(nextFilters)
+    void loadDreams(nextFilters)
+  }
 
-    loadDreams()
-  }, [])
+  useMountEffect(() => {
+    void loadDreams(emptyFilters)
+  })
 
-  // Apply home-page class to document body and html
-  useEffect(() => {
-    // Add the class to hide scrollbars
+  useMountEffect(() => {
     document.body.classList.add('home-page')
     document.documentElement.classList.add('home-page')
-    
-    // Clean up function to remove the class when component unmounts
+
     return () => {
       document.body.classList.remove('home-page')
       document.documentElement.classList.remove('home-page')
     }
-  }, [])
+  })
 
   // Function to get greeting based on time of day
   const getGreeting = () => {
@@ -88,6 +99,7 @@ export default function Home() {
       newDreamEntry: "New Dream Entry",
       recentDreams: "Recent Dreams",
       searchPlaceholder: "Search dreams...",
+      searchResults: "Search Results",
       filterByEmotion: "Filter by Emotion",
       emotions: ["Happy", "Excited", "Scared", "Anxious", "Confused", "Peaceful"],
       loading: "Loading dreams...",
@@ -100,6 +112,7 @@ export default function Home() {
       newDreamEntry: "Rekod Mimpi Baru",
       recentDreams: "Mimpi Terkini",
       searchPlaceholder: "Cari mimpi",
+      searchResults: "Hasil Carian",
       filterByEmotion: "Tapis mengikut Emosi",
       emotions: ["Gembira", "Teruja", "Takut", "Cemas", "Keliru", "Tenang"],
       loading: "Memuat mimpi...",
@@ -108,6 +121,17 @@ export default function Home() {
       dreamPop: "Dream Pop"
     }
   }
+
+  const hasActiveQuery = Boolean(
+    searchTerm ||
+    filters.emotion ||
+    filters.kategoriMimpi ||
+    filters.keadaanMimpi ||
+    filters.jenisMimpi
+  )
+  const resultsHeading = hasActiveQuery
+    ? translations[language].searchResults
+    : translations[language].recentDreams
 
   return (
     <div className="min-h-screen pb-16 md:pb-0 home-page">
@@ -125,12 +149,11 @@ export default function Home() {
             placeholder={translations[language].searchPlaceholder} 
           />
           <FilterChips 
-            activeFilters={activeFilters} 
-            setActiveFilters={setActiveFilters} 
-            selectedEmotion={selectedEmotion}
-            setSelectedEmotion={setSelectedEmotion}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
             filterLabel={translations[language].filterByEmotion}
             emotions={translations[language].emotions}
+            language={language}
           />
         </div>
 
@@ -141,7 +164,7 @@ export default function Home() {
           </div>
           <div className="md:col-span-8">
             <h2 className="text-2xl font-bold">
-              {searchTerm || activeFilters.length > 0 ? "Search Results" : translations[language].recentDreams}
+              {resultsHeading}
             </h2>
           </div>
         </div>
@@ -156,7 +179,6 @@ export default function Home() {
               <div className="mb-8">
                 <DreamLevelProfile 
                   language={language} 
-                  dreamCount={dreams.length} 
                   onLevelChange={handleLevelChange}
                 />
               </div>
@@ -171,12 +193,11 @@ export default function Home() {
                   placeholder={translations[language].searchPlaceholder} 
                 />
                 <FilterChips 
-                  activeFilters={activeFilters} 
-                  setActiveFilters={setActiveFilters} 
-                  selectedEmotion={selectedEmotion}
-                  setSelectedEmotion={setSelectedEmotion}
+                  filters={filters}
+                  onFiltersChange={handleFiltersChange}
                   filterLabel={translations[language].filterByEmotion}
                   emotions={translations[language].emotions}
+                  language={language}
                 />
               </div>
 
@@ -209,7 +230,7 @@ export default function Home() {
           <section className="md:col-span-8">
             {/* Only show heading on mobile */}
             <h2 className="text-2xl font-bold mb-4 md:hidden">
-              {searchTerm || activeFilters.length > 0 ? "Search Results" : translations[language].recentDreams}
+              {resultsHeading}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -221,7 +242,7 @@ export default function Home() {
                 <div className="col-span-full text-center py-8 text-red-500">
                   {translations[language].error}
                 </div>
-              ) : dreams.length === 0 ? (
+              ) : dreams.length === 0 && !hasActiveQuery ? (
                 <div className="col-span-full text-center py-8 text-zinc-400">
                   {translations[language].noDreams}
                 </div>
@@ -229,8 +250,10 @@ export default function Home() {
                 <SearchResults 
                   dreams={dreams} 
                   searchTerm={searchTerm} 
-                  activeFilters={activeFilters}
-                  selectedEmotion={selectedEmotion}
+                  selectedEmotion={filters.emotion}
+                  kategoriMimpi={filters.kategoriMimpi}
+                  keadaanMimpi={filters.keadaanMimpi}
+                  jenisMimpi={filters.jenisMimpi}
                 />
               )}
             </div>
@@ -244,4 +267,11 @@ export default function Home() {
       </div>
     </div>
   )
+}
+
+const emptyFilters: JournalFilterState = {
+  emotion: null,
+  kategoriMimpi: null,
+  keadaanMimpi: null,
+  jenisMimpi: null,
 } 

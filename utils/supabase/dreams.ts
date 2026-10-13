@@ -1,5 +1,18 @@
 import { createClient } from '@/utils/supabase/client'
 
+export type DreamEmotion = "Happy" | "Scared" | "Confused" | "Peaceful" | "Anxious" | "Excited"
+export type DreamCategory =
+  | "Daytime Carryover Dream"
+  | "Random Dream"
+  | "Carried Dream"
+  | "Learning Dream"
+  | "Receiving Dream"
+  | "Message Dream"
+  | "Disturbance Dream"
+  | "Blank Dream"
+export type DreamState = "Watching a Screen" | "Character in Dream" | "Both Watching and Being a Character"
+export type DreamType = "Normal Dream" | "Aware but Can't Control" | "Lucid Dream" | "Liminal Dream" | "Vivid Dream"
+
 export interface Dream {
   id: string
   user_id: string
@@ -14,10 +27,10 @@ export interface Dream {
     description: string
   }
   symbols: string
-  emotion: "Happy" | "Scared" | "Confused" | "Peaceful" | "Anxious" | "Excited"
-  kategori_mimpi: "Daytime Carryover Dream" | "Random Dream" | "Carried Dream" | "Learning Dream" | "Receiving Dream" | "Message Dream" | "Disturbance Dream" | "Blank Dream"
-  keadaan_mimpi: "Watching a Screen" | "Character in Dream" | "Both Watching and Being a Character"
-  jenis_mimpi: "Normal Dream" | "Aware but Can't Control" | "Lucid Dream" | "Liminal Dream" | "Vivid Dream"
+  emotion: DreamEmotion
+  kategori_mimpi: DreamCategory
+  keadaan_mimpi: DreamState
+  jenis_mimpi: DreamType
   ending: "abruptly" | "slowly" | null
   final_moments: string
   summary: string
@@ -31,9 +44,37 @@ export interface DreamListItem {
   date: string
   location: string
   people: string
-  emotion: "Happy" | "Scared" | "Confused" | "Peaceful" | "Anxious" | "Excited"
+  emotion: DreamEmotion
+  kategori_mimpi: DreamCategory
+  keadaan_mimpi: DreamState
+  jenis_mimpi: DreamType
   summary: string
   created_at: string
+}
+
+export interface DreamListFilters {
+  emotion?: DreamEmotion | null
+  kategoriMimpi?: DreamCategory | null
+  keadaanMimpi?: DreamState | null
+  jenisMimpi?: DreamType | null
+}
+
+const dreamListColumns =
+  "id, title, date, location, people, emotion, kategori_mimpi, keadaan_mimpi, jenis_mimpi, summary, created_at"
+
+const emotionEnumByKey = {
+  happy: "Happy",
+  excited: "Excited",
+  scared: "Scared",
+  anxious: "Anxious",
+  confused: "Confused",
+  peaceful: "Peaceful",
+} as const satisfies Record<string, DreamEmotion>
+
+export function toDreamEmotion(value: string | null): DreamEmotion | null {
+  if (!value) return null
+  const match = emotionEnumByKey[value.toLowerCase() as keyof typeof emotionEnumByKey]
+  return match ?? null
 }
 
 export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Dream> {
@@ -80,23 +121,29 @@ export async function createDream(dream: Omit<Dream, 'id' | 'user_id' | 'created
   return data
 }
 
-export async function getDreams(): Promise<DreamListItem[]> {
+export async function getDreams(filters: DreamListFilters = {}): Promise<DreamListItem[]> {
   const supabase = createClient()
-  
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (!user) throw new Error('User not authenticated')
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('dreams')
-    .select('id, title, date, location, people, emotion, summary, created_at')
+    .select(dreamListColumns)
     .eq('user_id', user.id)
-    .order('date', { ascending: false })
+
+  if (filters.emotion) query = query.eq('emotion', filters.emotion)
+  if (filters.kategoriMimpi) query = query.eq('kategori_mimpi', filters.kategoriMimpi)
+  if (filters.keadaanMimpi) query = query.eq('keadaan_mimpi', filters.keadaanMimpi)
+  if (filters.jenisMimpi) query = query.eq('jenis_mimpi', filters.jenisMimpi)
+
+  const { data, error } = await query.order('date', { ascending: false })
 
   if (error) throw error
-  return data
+  return (data ?? []) as DreamListItem[]
 }
 
 export async function getAllDreams(): Promise<Dream[]> {
