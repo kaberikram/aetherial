@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Trash2, AlertTriangle, RefreshCw, InfoIcon, Globe2, User, LogOut } from "lucide-react"
+import { ArrowLeft, Trash2, AlertTriangle, RefreshCw, InfoIcon, Globe2, User, LogOut, KeyRound } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { GradientButton } from "@/components/ui/gradient-button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { classifyPasswordUpdateError, validateNewPassword } from "@/utils/auth/recovery"
 import { forceResetWithAllSampleDreams } from "@/utils/sampleDream"
 import { createClient } from "@/utils/supabase/client"
 import { getAllDreams, deleteAllDreams } from "@/utils/supabase/dreams"
@@ -26,6 +29,9 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [dreams, setDreams] = useState<Dream[]>([])
   const [isLoadingDreams, setIsLoadingDreams] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
 
   // Load saved language
   useEffect(() => {
@@ -65,6 +71,17 @@ export default function SettingsPage() {
       profile: "Profile",
       email: "Email",
       signOut: "Sign Out",
+      changePassword: "Change password",
+      changePasswordDesc: "Set a new password for your account.",
+      newPassword: "New password",
+      confirmNewPassword: "Confirm new password",
+      updatePassword: "Update password",
+      updatingPassword: "Updating...",
+      passwordUpdated: "Password updated",
+      passwordUpdateFailed: "Could not update your password. Please try again.",
+      passwordMismatch: "Passwords must match",
+      passwordTooShort: "Password must be at least 6 characters",
+      passwordSame: "Choose a different password from your current one.",
       dataPrivacy: "Data Privacy",
       dataPrivacyDesc: "Your dream data is securely stored in our database using Supabase. All data is encrypted in transit and at rest. Only you can access your dreams through your authenticated account.",
       dataManagement: "Data Management",
@@ -100,6 +117,17 @@ export default function SettingsPage() {
       profile: "Profil",
       email: "Emel",
       signOut: "Log Keluar",
+      changePassword: "Tukar kata laluan",
+      changePasswordDesc: "Tetapkan kata laluan baharu untuk akaun anda.",
+      newPassword: "Kata laluan baharu",
+      confirmNewPassword: "Sahkan kata laluan baharu",
+      updatePassword: "Kemas kini kata laluan",
+      updatingPassword: "Mengemas kini...",
+      passwordUpdated: "Kata laluan dikemas kini",
+      passwordUpdateFailed: "Tidak dapat mengemas kini kata laluan. Sila cuba lagi.",
+      passwordMismatch: "Kata laluan mesti sepadan",
+      passwordTooShort: "Kata laluan mesti sekurang-kurangnya 6 aksara",
+      passwordSame: "Pilih kata laluan yang berbeza daripada kata laluan semasa.",
       dataPrivacy: "Privasi Data",
       dataPrivacyDesc: "Data mimpi anda disimpan dengan selamat dalam pangkalan data kami menggunakan Supabase. Semua data dienkripsi semasa penghantaran dan penyimpanan. Hanya anda yang boleh mengakses mimpi anda melalui akaun yang disahkan.",
       dataManagement: "Pengurusan Data",
@@ -179,6 +207,51 @@ export default function SettingsPage() {
     }))
     
     toast.success(newLanguage === 'en' ? "Language changed to English" : "Bahasa ditukar ke Bahasa Melayu")
+  }
+
+  async function handleChangePassword(event: React.FormEvent) {
+    event.preventDefault()
+    const validationError = validateNewPassword({
+      password: newPassword,
+      confirmPassword: confirmNewPassword,
+    })
+    if (validationError === "too-short") {
+      toast.error(translations[language].passwordTooShort)
+      return
+    }
+    if (validationError === "mismatch") {
+      toast.error(translations[language].passwordMismatch)
+      return
+    }
+
+    setIsUpdatingPassword(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) {
+        console.error("Password update failed:", error.message)
+        const failure = classifyPasswordUpdateError(error.message)
+        if (failure === "same") {
+          toast.error(translations[language].passwordSame)
+          return
+        }
+        if (failure === "short") {
+          toast.error(translations[language].passwordTooShort)
+          return
+        }
+        toast.error(translations[language].passwordUpdateFailed)
+        return
+      }
+
+      setNewPassword("")
+      setConfirmNewPassword("")
+      toast.success(translations[language].passwordUpdated)
+    } catch (error) {
+      console.error("Unexpected password update error:", error)
+      toast.error(translations[language].passwordUpdateFailed)
+    } finally {
+      setIsUpdatingPassword(false)
+    }
   }
 
   const handleSignOut = async () => {
@@ -478,6 +551,53 @@ export default function SettingsPage() {
                     <LogOut className="h-4 w-4" />
                     {translations[language].signOut}
                   </button>
+
+                  <form onSubmit={handleChangePassword} noValidate className="mt-6 pt-6 border-t border-zinc-800/50 space-y-4 max-w-md">
+                    <div>
+                      <h3 className="font-medium flex items-center gap-2">
+                        <KeyRound className="h-4 w-4 text-zinc-400" />
+                        {translations[language].changePassword}
+                      </h3>
+                      <p className="text-sm text-zinc-400 mt-1">{translations[language].changePasswordDesc}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="settings-new-password" className="text-zinc-200">
+                        {translations[language].newPassword}
+                      </Label>
+                      <Input
+                        id="settings-new-password"
+                        name="new-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        required
+                        className="bg-zinc-800/50 border-zinc-700/50 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="settings-confirm-password" className="text-zinc-200">
+                        {translations[language].confirmNewPassword}
+                      </Label>
+                      <Input
+                        id="settings-confirm-password"
+                        name="confirm-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={confirmNewPassword}
+                        onChange={(event) => setConfirmNewPassword(event.target.value)}
+                        required
+                        className="bg-zinc-800/50 border-zinc-700/50 text-white"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isUpdatingPassword}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      {isUpdatingPassword ? translations[language].updatingPassword : translations[language].updatePassword}
+                    </Button>
+                  </form>
                 </div>
               </div>
             </section>
