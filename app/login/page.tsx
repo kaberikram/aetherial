@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { createClient } from "@/utils/supabase/client"
+import { passwordRecoveryRedirectPath } from "@/utils/auth/recovery"
 import {
   Dialog,
   DialogContent,
@@ -205,7 +206,7 @@ export default function LoginPage() {
       const supabase = createClient()
       
       const { error } = await supabase.auth.resetPasswordForEmail(resetPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/settings`,
+        redirectTo: `${window.location.origin}${passwordRecoveryRedirectPath()}`,
       })
 
       if (error) {
