@@ -45,6 +45,32 @@ export async function middleware(request: NextRequest) {
       return supabaseResponse
     }
 
+    // The old callback sent some sessions to a page that was never built.
+    // Keep that URL from 404ing, and keep it off the signup verification screen.
+    if (request.nextUrl.pathname === '/auth/confirm-email') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+
+    // Recovery links must reach the set-password page even if a redirect
+    // lands on login or signup, including when a recovery session exists.
+    const recoveryType = request.nextUrl.searchParams.get('type')
+    const onAuthPage = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup'
+    if (onAuthPage && recoveryType === 'recovery') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/reset-password'
+      return NextResponse.redirect(url)
+    }
+
+    // A recovery session is authenticated. Allow the set-password page for
+    // that session, and also allow it without a session so an expired link
+    // can explain itself. Do not treat it as /login or /signup.
+    if (request.nextUrl.pathname === '/reset-password') {
+      return supabaseResponse
+    }
+
     // Redirect /profile to /settings
     if (request.nextUrl.pathname.startsWith('/profile')) {
       const url = request.nextUrl.clone()

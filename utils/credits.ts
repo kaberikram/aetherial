@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 
 export async function updateImageGenerationUsage(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
 
   // First try to update existing record for today
@@ -28,7 +28,7 @@ export async function updateImageGenerationUsage(userId: string) {
 }
 
 export async function getCurrentUsage(userId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
 
   const { data, error } = await supabase
