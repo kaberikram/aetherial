@@ -1,6 +1,6 @@
 "use client"
 
-import { HomeIcon, PlusIcon, GlobeIcon } from "lucide-react"
+import { HomeIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -44,13 +44,11 @@ export function BottomNav() {
   const translations = {
     en: {
       home: "Home",
-      capture: "Capture",
-      explore: "Explore"
+      capture: "Capture"
     },
     ms: {
       home: "Utama",
-      capture: "Rakam",
-      explore: "Layar"
+      capture: "Rakam"
     }
   }
   
@@ -63,7 +61,7 @@ export function BottomNav() {
   
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 h-16 bg-black/95 backdrop-blur-sm border-t border-zinc-800">
-      <div className="grid h-full grid-cols-3 mx-auto">
+      <div className="grid h-full grid-cols-2 mx-auto">
         <Link href="/home" className="inline-flex flex-col items-center justify-center px-5">
           <HomeIcon className={`h-6 w-6 ${isActive("/home") ? "text-white" : "text-zinc-400"}`} />
           <span className={`text-xs mt-1 ${isActive("/home") ? "text-white" : "text-zinc-400"}`}>
@@ -75,13 +73,6 @@ export function BottomNav() {
           <PlusIcon className={`h-6 w-6 ${isActive("/capture") ? "text-white" : "text-zinc-400"}`} />
           <span className={`text-xs mt-1 ${isActive("/capture") ? "text-white" : "text-zinc-400"}`}>
             {translations[language].capture}
-          </span>
-        </Link>
-
-        <Link href="/explore" className="inline-flex flex-col items-center justify-center px-5">
-          <GlobeIcon className={`h-6 w-6 ${isActive("/explore") ? "text-white" : "text-zinc-400"}`} />
-          <span className={`text-xs mt-1 ${isActive("/explore") ? "text-white" : "text-zinc-400"}`}>
-            {translations[language].explore}
           </span>
         </Link>
       </div>

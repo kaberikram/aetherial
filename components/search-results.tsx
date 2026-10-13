@@ -3,6 +3,7 @@ import { DreamCard } from "./dream-card"
 import { MeteorCard } from "./ui/meteor-card"
 import { useState, useEffect } from "react"
 import type { Dream } from "@/utils/supabase/dreams"
+import { Button } from "./ui/button"
 
 interface SearchResultsProps {
   dreams: Dream[]
@@ -10,6 +11,8 @@ interface SearchResultsProps {
   activeFilters: string[]
   selectedEmotion: string | null
 }
+
+const DREAMS_PER_PAGE = 20
 
 // Emotion mapping between English and Bahasa Melayu
 const emotionMapping = {
@@ -50,6 +53,7 @@ const mapToValidEmotion = (emotion: string): "happy" | "scared" | "confused" | "
 
 export function SearchResults({ dreams, searchTerm, activeFilters, selectedEmotion }: SearchResultsProps) {
   const [language, setLanguage] = useState<'en' | 'ms'>('en');
+  const [displayCount, setDisplayCount] = useState(DREAMS_PER_PAGE);
 
   useEffect(() => {
     // Initial load
@@ -83,6 +87,10 @@ export function SearchResults({ dreams, searchTerm, activeFilters, selectedEmoti
     };
   }, []);
 
+  useEffect(() => {
+    setDisplayCount(DREAMS_PER_PAGE)
+  }, [searchTerm, selectedEmotion])
+
   const filteredDreams = dreams.filter((dream) => {
     // First, filter by emotion if selected
     if (selectedEmotion) {
@@ -115,23 +123,47 @@ export function SearchResults({ dreams, searchTerm, activeFilters, selectedEmoti
     ? "Tiada mimpi yang sepadan dengan kriteria carian anda." 
     : "No dreams match your search criteria.";
 
+  const loadMoreText = language === 'ms' ? "Muat lebih banyak" : "Load more";
+  const showingText = language === 'ms' ? "Menunjukkan" : "Showing";
+  const ofText = language === 'ms' ? "daripada" : "of";
+
+  const visibleDreams = filteredDreams.slice(0, displayCount)
+  const hasMore = displayCount < filteredDreams.length
+
   return (
     <>
-      {filteredDreams.length > 0 ? (
-        filteredDreams.map((dream) => (
-          <div key={dream.id} className="h-full w-full">
-            <Link href={`/dream/${dream.id}`} className="block h-full w-full">
-              <MeteorCard
-                title={dream.title}
-                date={new Date(dream.date).toLocaleDateString(language === 'ms' ? 'ms-MY' : 'en-US')}
-                emotion={mapToValidEmotion(dream.emotion)}
-                excerpt={dream.summary}
-                location={dream.location}
-                people={dream.people}
-              />
-            </Link>
-          </div>
-        ))
+      {visibleDreams.length > 0 ? (
+        <>
+          {visibleDreams.map((dream) => (
+            <div key={dream.id} className="h-full w-full">
+              <Link href={`/dream/${dream.id}`} className="block h-full w-full">
+                <MeteorCard
+                  title={dream.title}
+                  date={new Date(dream.date).toLocaleDateString(language === 'ms' ? 'ms-MY' : 'en-US')}
+                  emotion={mapToValidEmotion(dream.emotion)}
+                  excerpt={dream.summary}
+                  location={dream.location}
+                  people={dream.people}
+                  language={language}
+                />
+              </Link>
+            </div>
+          ))}
+          {hasMore && (
+            <div className="col-span-full flex flex-col items-center gap-2 py-4">
+              <p className="text-sm text-zinc-400">
+                {showingText} {visibleDreams.length} {ofText} {filteredDreams.length}
+              </p>
+              <Button
+                onClick={() => setDisplayCount(prev => prev + DREAMS_PER_PAGE)}
+                variant="outline"
+                className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800"
+              >
+                {loadMoreText}
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="col-span-full">
           <p className="text-zinc-400">{noResultsText}</p>

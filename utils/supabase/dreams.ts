@@ -80,12 +80,30 @@ export async function getDreams() {
 
   const { data, error } = await supabase
     .from('dreams')
-    .select('*')
+    .select('id, title, date, location, people, emotion, summary, created_at')
     .eq('user_id', user.id)
     .order('date', { ascending: false })
 
   if (error) throw error
   return data
+}
+
+export async function getDreamCount() {
+  const supabase = createClient()
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) throw new Error('User not authenticated')
+
+  const { count, error } = await supabase
+    .from('dreams')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  if (error) throw error
+  return count || 0
 }
 
 export async function getDreamById(id: string) {

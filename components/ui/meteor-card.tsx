@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Meteors } from "./meteors";
 import { SmileIcon, FrownIcon, SearchIcon, MapPinIcon, UsersIcon } from "lucide-react";
@@ -14,6 +14,7 @@ interface MeteorCardProps {
   location?: string;
   people?: string;
   className?: string;
+  language: 'en' | 'ms';
 }
 
 const emotionTranslations = {
@@ -44,41 +45,10 @@ export function MeteorCard({
   excerpt, 
   location, 
   people,
-  className 
+  className,
+  language
 }: MeteorCardProps) {
-  const [language, setLanguage] = useState<'en' | 'ms'>('en');
-
-  useEffect(() => {
-    // Initial load
-    const savedLanguage = localStorage.getItem('language') as 'en' | 'ms' | null;
-    if (savedLanguage) {
-      setLanguage(savedLanguage);
-    }
-
-    // Set up storage event listener for changes from other windows
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'language') {
-        setLanguage(e.newValue as 'en' | 'ms');
-      }
-    };
-
-    // Set up event listener for changes in the same window
-    const handleLanguageChange = (e: StorageEvent) => {
-      if (e.key === 'language') {
-        setLanguage(e.newValue as 'en' | 'ms');
-      }
-    };
-
-    // Add event listeners
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('storage-local', handleLanguageChange as any);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('storage-local', handleLanguageChange as any);
-    };
-  }, []);
+  const [isHovered, setIsHovered] = useState(false);
 
   const getEmotionIcon = (emotion: Emotion) => {
     switch (emotion) {
@@ -119,6 +89,8 @@ export function MeteorCard({
 
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "h-full w-full rounded-lg bg-gradient-to-br border border-zinc-800/50 p-5 relative overflow-hidden",
         getEmotionGradient(emotion),
@@ -159,8 +131,7 @@ export function MeteorCard({
         <span>{emotionTranslations[language].tapToView}</span>
       </div>
 
-      {/* Meteor effect */}
-      <Meteors number={20} className="z-0" />
+      {isHovered && <Meteors number={20} className="z-0" />}
     </div>
   );
 } 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { getDreams } from "@/utils/supabase/dreams"
+import { getDreamCount } from "@/utils/supabase/dreams"
 
 interface DreamLevelProfileProps {
   language: 'en' | 'ms'
@@ -158,10 +158,9 @@ export function DreamLevelProfile({ language, dreamCount: propDreamCount, onLeve
         
         setUser(user)
         
-        // If dream count wasn't provided as a prop, fetch dreams from Supabase
+        // If dream count wasn't provided as a prop, fetch count from Supabase
         if (!propDreamCount) {
-          const fetchedDreams = await getDreams()
-          const count = fetchedDreams.length
+          const count = await getDreamCount()
           
           // Calculate new level based on count
           const { level, progress } = calculateLevel(count)
