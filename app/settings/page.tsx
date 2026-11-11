@@ -17,9 +17,6 @@ import type { Dream } from "@/utils/supabase/dreams"
 import { toast } from "sonner"
 import { DreamSphere } from "@/components/dream-sphere"
 
-// Daily generation limit - must match the API
-const DAILY_LIMIT = 2
-
 export default function SettingsPage() {
   const router = useRouter()
   const [showConfirmation, setShowConfirmation] = useState(false)
