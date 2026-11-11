@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { ArrowLeft, Edit2, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { DreamImageGenerator } from "@/components/dream-image-generator"
+import { DreamImage } from "@/components/dream-image"
 import { BottomNav } from "@/components/bottom-nav"
-import { getDreamById, deleteDream } from "@/utils/supabase/dreams"
+import { getDreamById, deleteDream, readStoredDreamImage } from "@/utils/supabase/dreams"
 import type { Dream } from "@/utils/supabase/dreams"
 
 const translations = {
@@ -270,7 +270,7 @@ export default function DreamDetail() {
             
             <h3 className="text-xl font-semibold mb-4 relative z-10">{translations[language].visualization}</h3>
             <div className="relative z-10">
-              <DreamImageGenerator summary={dream.summary} />
+              <DreamImage imageSrc={readStoredDreamImage(dream)} language={language} />
             </div>
           </div>
         </div>

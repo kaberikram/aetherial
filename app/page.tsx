@@ -46,6 +46,39 @@ function useElementOnScreen(options = {}): [RefObject<HTMLDivElement | null>, bo
   return [containerRef, isVisible]
 }
 
+function DreamLevelCard({ level, index }: DreamLevelCardProps) {
+  const [ref, isVisible] = useElementOnScreen({ threshold: 0.2 })
+
+  return (
+    <div
+      ref={ref}
+      className={`bg-zinc-900/50 p-6 rounded-lg border border-zinc-800/50 fade-in-section ${isVisible ? 'is-visible' : ''}`}
+      style={{ transitionDelay: `${index * 100}ms` }}
+    >
+      <div className="flex items-center gap-4">
+        <DreamSphere dreamCount={level.minEntries} size="md" />
+        <div>
+          <h3 className="text-lg font-semibold" style={{ color: getAuraColorValue(level) }}>
+            {level.title}
+          </h3>
+          <p className="text-sm text-zinc-400">{level.minEntries}+ entries</p>
+        </div>
+      </div>
+      <div className="mt-4">
+        <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full progress-bar ${isVisible ? 'is-visible' : ''}`}
+            style={{
+              backgroundColor: getAuraColorValue(level),
+              transitionDelay: `${index * 100 + 300}ms`
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const [language, setLanguage] = useState<'en' | 'ms'>('en');
 
@@ -255,38 +288,9 @@ export default function LandingPage() {
 
             {/* Level Cards */}
             <div className="grid gap-4">
-              {DREAM_LEVELS.map((level, index) => {
-                const [ref, isVisible] = useElementOnScreen({ threshold: 0.2 })
-                return (
-                  <div
-                    key={level.title}
-                    ref={ref}
-                    className={`bg-zinc-900/50 p-6 rounded-lg border border-zinc-800/50 fade-in-section ${isVisible ? 'is-visible' : ''}`}
-                    style={{ transitionDelay: `${index * 100}ms` }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <DreamSphere dreamCount={level.minEntries} size="md" />
-                      <div>
-                        <h3 className="text-lg font-semibold" style={{ color: getAuraColorValue(level) }}>
-                          {level.title}
-                        </h3>
-                        <p className="text-sm text-zinc-400">{level.minEntries}+ entries</p>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full progress-bar ${isVisible ? 'is-visible' : ''}`}
-                          style={{ 
-                            backgroundColor: getAuraColorValue(level),
-                            transitionDelay: `${index * 100 + 300}ms`
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+              {DREAM_LEVELS.map((level, index) => (
+                <DreamLevelCard key={level.title} level={level} index={index} />
+              ))}
             </div>
           </div>
         </div>
@@ -308,5 +312,10 @@ export default function LandingPage() {
       </section>
     </div>
   )
+}
+
+interface DreamLevelCardProps {
+  level: LevelInfo
+  index: number
 }
 

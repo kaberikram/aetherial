@@ -9,7 +9,6 @@ A beautiful 3D dream journal web application with visualization and exploration 
 - **Dream Journal**: Record and save your dreams with details like emotions, locations, and people.
 - **3D Dream Exploration**: Navigate through your dreams in a beautiful 3D environment.
 - **Dream Visualization**: See your dreams represented as glowing points in a dreamscape.
-- **AI Image Generation**: Generate images based on your dream descriptions.
 - **Search & Filter**: Easily find dreams by keywords, emotions, or dates.
 - **Responsive Design**: Works on both desktop and mobile devices.
 - **Settings**: Manage your dream journal data with export and reset options.
@@ -31,7 +30,7 @@ A beautiful 3D dream journal web application with visualization and exploration 
 ## Usage
 
 1. **Home Page**: View your recent dreams and access all features.
-2. **Capture Page**: Record a new dream with details and generate an image.
+2. **Capture Page**: Record a new dream with emotions, places, people, and a summary.
 3. **Explore Page**: Navigate the 3D dreamscape to explore your dreams.
 4. **Settings**: Manage your dream journal data and application preferences.
 5. **Authentication**: Sign up/login to track your dream journaling progress.

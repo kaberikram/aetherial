@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Edit2Icon, Sparkles, Save } from "lucide-react"
+import { ArrowLeft, Edit2Icon, Save } from "lucide-react"
 import Link from "next/link"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { BottomNav } from "@/components/bottom-nav"
@@ -53,7 +53,6 @@ interface Translations {
     lastThingPlaceholder: string
     dreamSummary: string
     saveDream: string
-    saveAndVisualize: string
     dreamCategories: {
       daytimeCarryover: string
       random: string
@@ -134,7 +133,6 @@ interface Translations {
     lastThingPlaceholder: string
     dreamSummary: string
     saveDream: string
-    saveAndVisualize: string
     dreamCategories: {
       daytimeCarryover: string
       random: string
@@ -272,28 +270,6 @@ export default function DreamCapture() {
     }
   }
 
-  const handleSaveAndVisualize = async () => {
-    try {
-      setError(null)
-      console.log('Attempting to save dream:', dream)
-      
-      const dreamToSave = {
-        ...dream,
-        summary: dream.summary || generateSummary(),
-      }
-      
-      console.log('Processed dream to save:', dreamToSave)
-      const savedDream = await createDream(dreamToSave)
-      console.log('Dream saved successfully:', savedDream)
-      
-      router.push(`/dream/${savedDream.id}`)
-    } catch (error) {
-      console.error('Failed to save dream. Full error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
-      setError(errorMessage)
-    }
-  }
-
   const translations = {
     en: {
       newDreamEntry: "New Dream Entry",
@@ -336,7 +312,6 @@ export default function DreamCapture() {
       lastThingPlaceholder: "A sound, a thought, a feeling...",
       dreamSummary: "Dream Summary",
       saveDream: "Save Dream",
-      saveAndVisualize: "Save & Visualize Dream",
       dreamCategories: {
         daytimeCarryover: "Daytime Carryover Dream",
         random: "Random Dream",
@@ -417,7 +392,6 @@ export default function DreamCapture() {
       lastThingPlaceholder: "Bunyi, fikiran, perasaan...",
       dreamSummary: "Ringkasan Mimpi",
       saveDream: "Simpan Mimpi",
-      saveAndVisualize: "Simpan & Visualkan Mimpi",
       dreamCategories: {
         daytimeCarryover: "Mimpi Bawaan Sianghari",
         random: "Mimpi Merapu",
@@ -782,14 +756,6 @@ export default function DreamCapture() {
           >
             <Save className="h-5 w-5" />
             {translations[language].saveDream}
-          </GradientButton>
-          
-          <GradientButton 
-            onClick={handleSaveAndVisualize}
-            className="w-full py-3 flex items-center justify-center gap-2 gradient-button-variant"
-          >
-            <Sparkles className="h-5 w-5" />
-            {translations[language].saveAndVisualize}
           </GradientButton>
         </div>
       </main>

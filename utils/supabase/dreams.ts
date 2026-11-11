@@ -38,6 +38,21 @@ export interface Dream {
   updated_at: string
 }
 
+const storedDreamImageKeys = ["image_url", "generated_image", "image"] as const
+
+export function readStoredDreamImage(dream: Dream): string | null {
+  const record = dream as Dream & Partial<Record<(typeof storedDreamImageKeys)[number], unknown>>
+
+  for (const key of storedDreamImageKeys) {
+    const value = record[key]
+    if (typeof value !== "string") continue
+    const trimmed = value.trim()
+    if (trimmed) return trimmed
+  }
+
+  return null
+}
+
 export interface DreamListItem {
   id: string
   title: string
